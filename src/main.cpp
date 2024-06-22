@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    const char *opt_str = "x:d:l:s:R:m:h:k:w:t:g:r:o:DSc";
+    const char *opt_str = "x:d:c:l:s:R:m:h:k:w:t:g:r:o:DSc";
     ketopt_t o = KETOPT_INIT;
 	mg_mapopt_t opt;
 	mg_idxopt_t ipt;
@@ -48,6 +48,7 @@ int main(int argc, char *argv[]) {
 	FILE *fp_help = stderr;
     int32_t help = 0;
     mg_verbose = 3;
+    int32_t max_occ = 100;
 
 	mg_opt_set(0, &ipt, &opt);
 	o = KETOPT_INIT;
@@ -62,6 +63,7 @@ int main(int argc, char *argv[]) {
         else if (c == 'R') recombination = atoi(o.arg);
         else if (c == 'r') opt.reads_file = o.arg;
         else if (c == 'o') opt.hap_file = o.arg;
+        else if (c == 'c') max_occ = atoi(o.arg);
         else if (c == 'd') debug = atoi(o.arg);
         else if (c == 'h') help = 1;
         else if (c == 300) {
@@ -77,6 +79,7 @@ int main(int argc, char *argv[]) {
 		fprintf(fp_help, "    -w INT       Minimizer window size [%d]\n", ipt.w);
         fprintf(fp_help, "    -s INT       Scale factor [%d]\n", scale_factor);
         fprintf(fp_help, "    -R INT       Recombination penalty [%d]\n", recombination);
+        fprintf(fp_help, "    -c INT       Maximum K-mer occurence [%d]\n", max_occ);
         fprintf(fp_help, "    -t INT       Threads [%d]\n", opt.n_threads);
         fprintf(fp_help, "    -g INT       GFA file [%s]\n", opt.gfa_file.c_str());
         fprintf(fp_help, "    -r INT       Read [%s]\n", opt.reads_file.c_str());
@@ -110,6 +113,10 @@ int main(int argc, char *argv[]) {
     ILP_handle->hap_file = opt.hap_file; // haplotype file to be written
     ILP_handle->debug = debug; // debug mode
     ILP_handle->hap_name = hap_name; // haplotype name to be written as id of the haplotype
+    ILP_handle->k_mer = ipt.k; // k-mer size
+    ILP_handle->window = ipt.w; // window size
+    ILP_handle->bucket_bits = 14; // bucket bits
+    ILP_handle->max_occ = max_occ; // maximum k-mer occurence
 
 
     // Read the reads from "-r" file

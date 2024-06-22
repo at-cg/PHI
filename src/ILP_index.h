@@ -8,6 +8,8 @@
 #include "kalloc.h"
 #include <zlib.h>
 #include "kseq.h"
+#include "kvec-km.h"
+#include "kthread.h"
 #include "sys.h"
 
 // CPP
@@ -53,6 +55,10 @@ class ILP_index {
         std::string hap_file = "";
         std::string hap_name = "";
         bool debug = false;
+        int32_t k_mer;
+        int32_t window;
+        int32_t bucket_bits;
+        int32_t max_occ;
 
         // Constructor
         ILP_index(gfa_t *g);	// This is constructor
@@ -63,4 +69,4 @@ class ILP_index {
         void ILP_function(std::vector<std::pair<std::string, std::string>> &ip_reads);
 
         /* Please add your ILP functions here */
-};   
+};

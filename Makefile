@@ -7,8 +7,8 @@ all: AlphaASM
 
 src_dir := src
 
-OBJS = $(src_dir)/main.o $(src_dir)/index.o $(src_dir)/sketch.o $(src_dir)/gfa-ed.o \
-		$(src_dir)/gfa-io.o $(src_dir)/gfa-base.o \
+OBJS = $(src_dir)/main.o $(src_dir)/sketch.o $(src_dir)/gfa-ed.o \
+		$(src_dir)/gfa-io.o $(src_dir)/sketch.o $(src_dir)/gfa-base.o \
 		$(src_dir)/kthread.o $(src_dir)/options.o $(src_dir)/kalloc.o \
 		$(src_dir)/misc.o $(src_dir)/gfa-bbl.o \
 		$(src_dir)/sys.o $(src_dir)/ILP_index.o
@@ -20,4 +20,4 @@ $(src_dir)/%.o: $(src_dir)/%.cpp
 	$(CXX) -c $< -o $@ $(INLCLUDES) $(LIBS) $(CXXFLAGS)
 
 clean:
-	rm -f $(src_dir)/*.o AlphaASM2
+	rm -f $(src_dir)/*.o AlphaASM
