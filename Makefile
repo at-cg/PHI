@@ -7,11 +7,9 @@ all: AlphaASM
 
 src_dir := src
 
-OBJS = $(src_dir)/main.o $(src_dir)/sketch.o $(src_dir)/gfa-ed.o \
-		$(src_dir)/gfa-io.o $(src_dir)/sketch.o $(src_dir)/gfa-base.o \
-		$(src_dir)/kthread.o $(src_dir)/options.o $(src_dir)/kalloc.o \
-		$(src_dir)/misc.o $(src_dir)/gfa-bbl.o \
-		$(src_dir)/sys.o $(src_dir)/ILP_index.o
+OBJS = $(src_dir)/main.o $(src_dir)/gfa-io.o $(src_dir)/gfa-base.o \
+		$(src_dir)/options.o $(src_dir)/kalloc.o \
+		$(src_dir)/misc.o $(src_dir)/sys.o $(src_dir)/ILP_index.o
 
 AlphaASM: $(OBJS)
 	$(CXX) $^ -o $@ $(INLCLUDES) $(LIBS) $(CXXFLAGS)

@@ -9,7 +9,6 @@
 #include <zlib.h>
 #include "kseq.h"
 #include "kvec-km.h"
-#include "kthread.h"
 #include "sys.h"
 
 // CPP
@@ -30,9 +29,16 @@
 #include <functional>
 #include <tuple>
 #include <map>
+#include <sstream>
 
 // Gurobi
 #include "gurobi_c++.h"
+
+struct Anchor 
+{
+    int32_t h;
+    std::vector<int32_t> k_mers;
+};
 
 
 class ILP_index {
@@ -68,6 +74,9 @@ class ILP_index {
         void read_gfa();
         void read_ip_reads(std::vector<std::pair<std::string, std::string>> &ip_reads, std::string ip_reads_file);
         void ILP_function(std::vector<std::pair<std::string, std::string>> &ip_reads);
+        std::unordered_map<uint64_t, Anchor> index_kmers(int32_t hap);
+        std::set<uint64_t> compute_hashes(std::string &read_seq);
+        std::vector<Anchor> compute_anchors(std::unordered_map<uint64_t, Anchor> &minimizers, std::set<uint64_t> &read_hashes);
 
         /* Please add your ILP functions here */
 };
