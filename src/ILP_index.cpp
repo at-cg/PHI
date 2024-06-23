@@ -442,6 +442,59 @@ void::ILP_index::read_gfa()
     }
 }
 
+void printConstraints(GRBModel& model) {
+    GRBConstr* constraints = model.getConstrs();
+    int numConstraints = model.get(GRB_IntAttr_NumConstrs);
+
+    for (int i = 0; i < numConstraints; ++i) {
+        std::string constrName = constraints[i].get(GRB_StringAttr_ConstrName);
+        GRBLinExpr constrExpr = model.getRow(constraints[i]);
+        double rhs = constraints[i].get(GRB_DoubleAttr_RHS);
+        char sense = constraints[i].get(GRB_CharAttr_Sense);
+
+        std::cout << "Constraint " << constrName << ": ";
+
+        for (int j = 0; j < constrExpr.size(); ++j) {
+            GRBVar var = constrExpr.getVar(j);
+            double coeff = constrExpr.getCoeff(j);
+            std::string varName = var.get(GRB_StringAttr_VarName);
+
+            std::cout << coeff << " * " << varName;
+            if (j < constrExpr.size() - 1) {
+                std::cout << " + ";
+            }
+        }
+
+        if (sense == GRB_EQUAL) {
+            std::cout << " == ";
+        } else if (sense == GRB_LESS_EQUAL) {
+            std::cout << " <= ";
+        } else if (sense == GRB_GREATER_EQUAL) {
+            std::cout << " >= ";
+        }
+
+        std::cout << rhs << std::endl;
+    }
+
+    delete[] constraints;
+}
+
+void printNonZeroVariables(GRBModel& model) {
+    int numVars = model.get(GRB_IntAttr_NumVars);
+    GRBVar* vars = model.getVars();
+
+    std::cout << "Non-zero variables:\n";
+    for (int i = 0; i < numVars; ++i) {
+        double val = vars[i].get(GRB_DoubleAttr_X);
+        if (val != 0.0) {
+            std::string varName = vars[i].get(GRB_StringAttr_VarName);
+            std::cout << varName << " = " << val << std::endl;
+        }
+    }
+
+    delete[] vars;
+}
+
 // Read the reads
 void ILP_index::read_ip_reads(std::vector<std::pair<std::string, std::string>> &ip_reads, std::string ip_reads_file)
 {
@@ -574,6 +627,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     try {
         // Create an environment
         GRBEnv env = GRBEnv(true);
+        env.set(GRB_IntParam_Threads, num_threads);
         env.start();
 
         // Create an empty model
@@ -582,16 +636,13 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         std::map<std::string, GRBVar> vars;
 
         // Kmer constraints
-        // printf("Kmer constraints\n");
         for (int32_t i = 0; i < num_walks; i++) {
-            for (int32_t j = 0; j < Kmers[i].size(); j++)
-            {
+            for (int32_t j = 0; j < Kmers[i].size(); j++) {
                 GRBLinExpr kmer_expr;
-                for (int32_t k = 1; k < Kmers[i][j].size(); k++)
-                {
+                for (int32_t k = 1; k < Kmers[i][j].size(); k++) {
                     int32_t u = Kmers[i][j][k-1];
                     int32_t v = Kmers[i][j][k];
-                    std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i); // same haplotype on edges
+                    std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
                     vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
                     kmer_expr += vars[var_name];
                 }
@@ -599,153 +650,117 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 GRBVar kmer_expr_var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, exra_var);
                 vars[exra_var] = kmer_expr_var;
                 std::string constraint_name = "Kmer_constraints_" + std::to_string(i) + "_" + std::to_string(j);
-                model.addConstr(kmer_expr <= k_mer * kmer_expr_var, constraint_name + "_1"); // atmost k_mer - 1 edges
-                model.addConstr(kmer_expr >= k_mer * kmer_expr_var, constraint_name + "_2"); // atleast k_mer - 1 edges
+                int32_t kmer_weight = Kmers[i][j].size() - 1;
+                model.addConstr(kmer_expr == kmer_weight * kmer_expr_var, constraint_name);
             }
         }
 
         fprintf(stderr, "[M::%s::%.3f*%.2f] Kmer constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
-        // Create the first part of the objective function
-        GRBLinExpr Obj_start;
+        // Create the objective function
+        GRBLinExpr obj;
+
+        GRBLinExpr start_expr;
+        GRBLinExpr end_expr;
         for (int32_t i = 0; i < num_walks; i++) {
-            int32_t u = paths[i][0];
-            std::string var_name_start = "s_" + std::to_string(u) + "_" + std::to_string(i);
+            int32_t u_start = paths[i][0];
+            std::string var_name_start = "s_" + std::to_string(u_start) + "_" + std::to_string(i);
             GRBVar var_start = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_start);
             vars[var_name_start] = var_start;
-            Obj_start += var_start;
-            // printf("Var : %s\n", var_name_start.c_str());
-        }
+            start_expr += var_start;
 
-        // Create the second part of the objective function
-        GRBLinExpr Obj_end;
-        for (int32_t i = 0; i < num_walks; i++) {
-            int32_t u = paths[i][paths[i].size() - 1];
-            std::string var_name_end = std::to_string(u) + "_" + std::to_string(i) + "_e";
+            int32_t u_end = paths[i][paths[i].size() - 1];
+            std::string var_name_end = std::to_string(u_end) + "_" + std::to_string(i) + "_e";
             GRBVar var_end = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_end);
             vars[var_name_end] = var_end;
-            Obj_end += var_end;
-            // printf("Var : %s\n", var_name_end.c_str());
+            end_expr += var_end;
         }
 
-        // Add constraints
-        model.addConstr(Obj_start <= 1, "Flow_coservation_start");
-        model.addConstr(Obj_end <= 1, "Flow_coservation_end");
+        // set start_expr <= 1 and end_expr <= 1
+        model.addConstr(start_expr == 1, "Start_expr");
+        model.addConstr(end_expr == 1, "End_expr");
 
         // Add vertex constraints from adj_list
         GRBLinExpr vtx_expr;
         for (auto u = 0; u < n_vtx; u++) {
             for (auto v : adj_list[u]) {
-                for (auto i: haps[u])
-                {
-                    for (auto j: haps[v])
-                    {
+                for (auto i: haps[u]) {
+                    for (auto j: haps[v]) {
                         std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
-                        if (i != j) // recombination
-                        {
+                        if (i != j) {
                             GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
                             vars[var_name] = var;
                             vtx_expr += 2 * var;
-                        }else
-                        {
-                            // check if var_name is not existing in the vars then add
-                            if (vars.find(var_name) == vars.end()) // Not found then add
-                            {
+                        } else {
+                            if (vars.find(var_name) == vars.end()) { // Variable does not exist
                                 GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
                                 vars[var_name] = var;
                                 vtx_expr += var;
-                            }else
-                            {
-                                vtx_expr += 0 * vars[var_name]; // kmer is already present
+                            }else {
+                                vtx_expr += 0 * vars[var_name]; // Already variable exists in Kmers hence no need to add
                             }
                         }
-                        // printf("Var : %s\n", var_name.c_str());
                     }
                 }
             }
         }
 
-        // Combine the objectives into a single objective function
-        GRBLinExpr obj = Obj_start + vtx_expr + Obj_end;
+        obj = start_expr + vtx_expr + end_expr;
 
-        fprintf(stderr, "[M::%s::%.3f*%.2f] Objective fucntion added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
+        fprintf(stderr, "[M::%s::%.3f*%.2f] Objective function added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
-        printf("Flow constraints\n");
-
+        // Flow constraints for each vertex
         for (auto u = 0; u < n_vtx; u++) {
-            if (in_nodes[u].size() == 0 || adj_list[u].size() == 0) continue; // For s and t
-            // Flow constraints for the vertex i.e. sum of in edges - sum of out edges = 0
+            if (in_nodes[u].size() == 0 || adj_list[u].size() == 0) continue;
+
             GRBLinExpr in_expr;
-            for (auto v: in_nodes[u])
-            {
-                for (auto i: haps[v])
-                {
-                    for (auto j: haps[u])
-                    {
+            for (auto v: in_nodes[u]) {
+                for (auto i: haps[v]) {
+                    for (auto j: haps[u]) {
                         std::string var_name = std::to_string(v) + "_" + std::to_string(i) + "_" + std::to_string(u) + "_" + std::to_string(j);
                         in_expr += vars[var_name];
-                        // printf("Var : %s\n", var_name.c_str());
                     }
                 }
             }
-
-            // printf("-\n");
 
             GRBLinExpr out_expr;
-            for (auto v: adj_list[u])
-            {
-                for (auto i: haps[u])
-                {
-                    for (auto j: haps[v])
-                    {
+            for (auto v: adj_list[u]) {
+                for (auto i: haps[u]) {
+                    for (auto j: haps[v]) {
                         std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
                         out_expr += vars[var_name];
-                        // printf("Var : %s\n", var_name.c_str());
                     }
                 }
             }
-            std::string constraint_name = "Flow_conservation_" + std::to_string(u) + "_" + std::to_string(rand()%u);
-            model.addConstr(in_expr - out_expr == 0, constraint_name);
-            // exit(0);
+
+            std::string constraint_name = "Flow_conservation_" + std::to_string(u);
+            model.addConstr(in_expr == out_expr, constraint_name);
         }
 
-        // add flow constraints for the source and sink
-        // printf("Source constraints\n");
+        // Flow constraints for source nodes
         for (int32_t i = 0; i < num_walks; i++) {
             int32_t u = paths[i][0];
             GRBLinExpr s_expr;
-            std::string var_name_start = "s_" + std::to_string(u) + "_" + std::to_string(i);
-            s_expr += vars[var_name_start];
-            printf("Var : %s\n", var_name_start.c_str());
-            for (auto v: adj_list[u])
-            {
-                for (auto j: haps[v])
-                {
-                    std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
-                    s_expr -= vars[var_name];
-                    // printf("Var : -%s\n", var_name.c_str());
+            s_expr += vars["s_" + std::to_string(u) + "_" + std::to_string(i)];
+            for (auto v: adj_list[u]) {
+                for (auto j: haps[v]) {
+                    s_expr -= vars[std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j)];
                 }
             }
             std::string constraint_name = "Source_conservation_" + std::to_string(u) + "_" + std::to_string(i);
             model.addConstr(s_expr == 0, constraint_name);
         }
 
-        // printf("Sink constraints\n");
+        // Flow constraints for sink nodes
         for (int32_t i = 0; i < num_walks; i++) {
             int32_t u = paths[i][paths[i].size() - 1];
             GRBLinExpr e_expr;
-            for (auto v: in_nodes[u])
-            {
-                for (auto j: haps[v])
-                {
-                    std::string var_name = std::to_string(v) + "_" + std::to_string(j) + "_" + std::to_string(u) + "_" + std::to_string(i);
-                    e_expr += vars[var_name];
-                    // printf("Var : %s+\n", var_name.c_str());
+            for (auto v: in_nodes[u]) {
+                for (auto j: haps[v]) {
+                    e_expr += vars[std::to_string(v) + "_" + std::to_string(j) + "_" + std::to_string(u) + "_" + std::to_string(i)];
                 }
             }
-            std::string var_name_end = std::to_string(u) + "_" + std::to_string(i) + "_e";
-            e_expr += vars[var_name_end];
-            // printf("Var : -%s\n", var_name_end.c_str());
+            e_expr += -1 * vars[std::to_string(u) + "_" + std::to_string(i) + "_e"];
             std::string constraint_name = "Sink_conservation_" + std::to_string(u) + "_" + std::to_string(i);
             model.addConstr(e_expr == 0, constraint_name);
         }
@@ -758,8 +773,13 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
 
         fprintf(stderr, "[M::%s::%.3f*%.2f] Model optimized\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
-        // print the objective value
-        printf("Obj: %g\n", model.get(GRB_DoubleAttr_ObjVal));
+        // Print constraints
+        bool debug = false;
+        if (debug)
+        {
+            printConstraints(model);
+            printNonZeroVariables(model);
+        }
 
     } catch (GRBException e) {
         std::cerr << "Error code = " << e.getErrorCode() << std::endl;
@@ -767,6 +787,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     } catch (...) {
         std::cerr << "Exception during optimization" << std::endl;
     }
+
     
     // write haplotype as to a file as fasta from the path
     std::string path_str = "ATCG"; // replace this with the actual string spelled by the path
