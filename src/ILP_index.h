@@ -29,6 +29,7 @@
 #include <stack>
 #include <functional>
 #include <tuple>
+#include <map>
 
 // Gurobi
 #include "gurobi_c++.h"
