@@ -114,6 +114,47 @@ void::ILP_index::read_gfa()
             paths[w].push_back(v); // Map forward walk to path
         }
     }
+
+    // compute tpological order with kahns algorithm
+    std::vector<int32_t> in_degree(n_vtx, 0);
+    for (int32_t i = 0; i < n_vtx; i++)
+    {
+        for (auto v: adj_list[i])
+        {
+            in_degree[v]++;
+        }
+    }
+
+    std::queue<int32_t> q;
+    for (int32_t i = 0; i < n_vtx; i++)
+    {
+        if (in_degree[i] == 0)
+        {
+            q.push(i);
+        }
+    }
+
+    while (!q.empty())
+    {
+        int32_t u = q.front();
+        q.pop();
+        top_order.push_back(u);
+        for (auto v: adj_list[u])
+        {
+            in_degree[v]--;
+            if (in_degree[v] == 0)
+            {
+                q.push(v);
+            }
+        }
+    }
+
+    // create map for topological order
+    top_order_map.resize(n_vtx);
+    for (int32_t i = 0; i < top_order.size(); i++)
+    {
+        top_order_map[top_order[i]] = i;
+    }
 }
 
 void printConstraints(GRBModel& model) {
@@ -391,11 +432,10 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     for (int32_t h = 0; h < num_walks; h++)
     {
         num_kmers += Kmers[h].size();
-        printf("Hap : %d, Anchors : %d\n", h, Kmers[h].size());
+        // printf("Hap : %d, Anchors : %d\n", h, Kmers[h].size());
     }
 
     fprintf(stderr, "[M::%s::%.3f*%.2f] %d unique k-mers matches found\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), num_kmers);
-    exit(0);
 
     std::vector<std::vector<int32_t>> in_nodes(n_vtx);
     for (int32_t i = 0; i < n_vtx; i++)
@@ -426,25 +466,25 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         // create map to store variables
         std::map<std::string, GRBVar> vars;
 
-        // // Kmer constraints
-        // for (int32_t i = 0; i < num_walks; i++) {
-        //     for (int32_t j = 0; j < Kmers[i].size(); j++) {
-        //         GRBLinExpr kmer_expr;
-        //         for (int32_t k = 1; k < Kmers[i][j].size(); k++) {
-        //             int32_t u = Kmers[i][j][k-1];
-        //             int32_t v = Kmers[i][j][k];
-        //             std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
-        //             vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
-        //             kmer_expr += vars[var_name];
-        //         }
-        //         std::string exra_var = "z_" + std::to_string(i) + "_" + std::to_string(j);
-        //         GRBVar kmer_expr_var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, exra_var);
-        //         vars[exra_var] = kmer_expr_var;
-        //         std::string constraint_name = "Kmer_constraints_" + std::to_string(i) + "_" + std::to_string(j);
-        //         int32_t kmer_weight = Kmers[i][j].size() - 1;
-        //         model.addConstr(kmer_expr == kmer_weight * kmer_expr_var, constraint_name);
-        //     }
-        // }
+        // Kmer constraints
+        for (int32_t i = 0; i < num_walks; i++) {
+            for (int32_t j = 0; j < Kmers[i].size(); j++) {
+                GRBLinExpr kmer_expr;
+                for (int32_t k = 1; k < Kmers[i][j].size(); k++) {
+                    int32_t u = Kmers[i][j][k-1];
+                    int32_t v = Kmers[i][j][k];
+                    std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
+                    vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                    kmer_expr += vars[var_name];
+                }
+                std::string exra_var = "z_" + std::to_string(i) + "_" + std::to_string(j);
+                GRBVar kmer_expr_var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, exra_var);
+                vars[exra_var] = kmer_expr_var;
+                std::string constraint_name = "Kmer_constraints_" + std::to_string(i) + "_" + std::to_string(j);
+                int32_t kmer_weight = Kmers[i][j].size() - 1;
+                model.addConstr(kmer_expr == kmer_weight * kmer_expr_var, constraint_name);
+            }
+        }
 
         fprintf(stderr, "[M::%s::%.3f*%.2f] Kmer constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
@@ -585,7 +625,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             if (var.get(GRB_CharAttr_VType) == GRB_BINARY && var.get(GRB_DoubleAttr_X) > 0.0) {
                 // first letter is or last letter is e then skip
                 std::string var_name = var.get(GRB_StringAttr_VarName);
-                if (var_name[0] == 's' || var_name[var_name.size() - 1] == 'e') {
+                if (var_name[0] == 's' || var_name[0] == 'z'  || var_name[var_name.size() - 1] == 'e') {
                     continue;
                 }
                 path_strs.push_back(var_name);
@@ -610,12 +650,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         }
         path_strs.clear();
 
-        // pritn the path edges
-        for (int i = 0; i < path_edges.size(); i++)
-        {
-            std::cout << path_edges[i].first << " " << path_edges[i].second << std::endl;
-        }
-
         // generate a set of vertices from the path edges
         std::set<int32_t> path_vertices;
         for (int i = 0; i < path_edges.size(); i++)
@@ -624,6 +658,10 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             path_vertices.insert(path_edges[i].second);
         }
         std::vector<int32_t> hap_path(path_vertices.begin(), path_vertices.end());
+        // sort hap_path by top_order_map as key
+        std::sort(hap_path.begin(), hap_path.end(), [&](int32_t a, int32_t b) {
+            return top_order_map[a] < top_order_map[b];
+        }); // To ensure the path is in topological order
         // verify the path vertices by checking if there exist and edge between the vertices
         for (int i = 1; i < path_edges.size(); i++)
         {
@@ -657,7 +695,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     } catch (...) {
         std::cerr << "Exception during optimization" << std::endl;
     }
-
     
     // write haplotype as to a file as fasta from the path
     std::string path_str = haplotype;
@@ -669,5 +706,5 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     }
     hap_file_stream.close();
 
-    fprintf(stderr, "[M::%s::%.3f*%.2f] Haplotype written to: %s\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), hap_file.c_str());
+    fprintf(stderr, "[M::%s::%.3f*%.2f] Haplotype of size: %d written to: %s\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), path_str.size(), hap_file.c_str());
 }

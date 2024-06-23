@@ -51,6 +51,8 @@ class ILP_index {
         std::vector<std::string> node_seq;
         std::vector<std::vector<uint32_t>> paths;
         std::vector<std::vector<uint32_t>> haps;
+        std::vector<int32_t> top_order;
+        std::vector<int32_t> top_order_map;
 
         // Support Variables
         int32_t lin_ref = 0;
