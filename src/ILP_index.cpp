@@ -261,6 +261,57 @@ void printNonZeroVariables(GRBModel& model) {
     delete[] vars;
 }
 
+void printObjectiveFunction(GRBModel& model) {
+    GRBQuadExpr objExpr = model.getObjective();
+    int sense = model.get(GRB_IntAttr_ModelSense);
+
+    std::cout << "Objective Function: ";
+
+    // Print linear terms
+    bool firstTerm = true; // To handle the '+' sign placement
+    for (int i = 0; i < objExpr.getLinExpr().size(); ++i) {
+        GRBVar var = objExpr.getLinExpr().getVar(i);
+        double coeff = objExpr.getLinExpr().getCoeff(i);
+        std::string varName = var.get(GRB_StringAttr_VarName);
+
+        if (!firstTerm) {
+            std::cout << " + ";
+        }
+        std::cout << coeff << " * " << varName;
+        firstTerm = false;
+    }
+
+    // Print quadratic terms
+    for (int i = 0; i < objExpr.size(); ++i) {
+        GRBVar var1 = objExpr.getVar1(i);
+        GRBVar var2 = objExpr.getVar2(i);
+        double qcoeff = objExpr.getCoeff(i);
+        std::string varName1 = var1.get(GRB_StringAttr_VarName);
+        std::string varName2 = var2.get(GRB_StringAttr_VarName);
+
+        if (!firstTerm) {
+            std::cout << " + ";
+        }
+        std::cout << qcoeff << " * " << varName1 << " * " << varName2;
+        firstTerm = false;
+    }
+
+    // Print constant term if it exists
+    double constant = model.get(GRB_DoubleAttr_ObjCon);
+    if (constant != 0) {
+        if (!firstTerm) {
+            std::cout << " + ";
+        }
+        std::cout << constant;
+    }
+
+    if (sense == GRB_MINIMIZE) {
+        std::cout << " (Minimize)" << std::endl;
+    } else {
+        std::cout << " (Maximize)" << std::endl;
+    }
+}
+
 // Read the reads
 void ILP_index::read_ip_reads(std::vector<std::pair<std::string, std::string>> &ip_reads, std::string ip_reads_file)
 {
@@ -415,6 +466,8 @@ std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::v
             {
                 anchor.push_back(minimizer.second.k_mers[j]);
             }
+            // print read_hashes[hash]
+            printf("Hash : %d\n", read_hashes[hash]);
             local_anchors[tid].push_back(std::make_pair(read_hashes[hash], anchor)); // id, anchor
         }
     }
@@ -511,6 +564,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             }
         } 
     }
+
     // find number of kmers
     for (int32_t h = 0; h < num_walks; h++)
     {
@@ -634,7 +688,14 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             }
         }
 
-        obj = start_expr + vtx_expr + end_expr;
+        // add (1-z_{i}) constraints
+        GRBLinExpr z_expr;
+        for (int32_t i = 0; i < Sp_R.size(); i++) {
+            std::string z_var = "z_" + std::to_string(i);
+            z_expr += (1 - vars[z_var]);
+        }
+
+        obj = start_expr + vtx_expr + end_expr + z_expr;
 
         fprintf(stderr, "[M::%s::%.3f*%.2f] Objective function added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
@@ -703,9 +764,10 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         fprintf(stderr, "[M::%s::%.3f*%.2f] Model optimized\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
         // Print constraints
-        bool debug = false;
+        bool debug = true;
         if (debug)
         {
+            printObjectiveFunction(model);
             printConstraints(model);
             printQuadraticConstraints(model);
             printNonZeroVariables(model);
