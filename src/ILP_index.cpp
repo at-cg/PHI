@@ -157,6 +157,58 @@ void::ILP_index::read_gfa()
     }
 }
 
+void printQuadraticConstraints(GRBModel& model) {
+    GRBQConstr* qconstraints = model.getQConstrs();
+    int numQConstraints = model.get(GRB_IntAttr_NumQConstrs);
+
+    for (int i = 0; i < numQConstraints; ++i) {
+        std::string qconstrName = qconstraints[i].get(GRB_StringAttr_QCName);
+        GRBQuadExpr qconstrExpr = model.getQCRow(qconstraints[i]);
+        double qrhs = qconstraints[i].get(GRB_DoubleAttr_QCRHS);
+        char qsense = qconstraints[i].get(GRB_CharAttr_QCSense);
+
+        std::cout << "Quadratic Constraint " << qconstrName << ": ";
+
+        // Print linear terms
+        for (int j = 0; j < qconstrExpr.getLinExpr().size(); ++j) {
+            GRBVar var = qconstrExpr.getLinExpr().getVar(j);
+            double coeff = qconstrExpr.getLinExpr().getCoeff(j);
+            std::string varName = var.get(GRB_StringAttr_VarName);
+
+            std::cout << coeff << " * " << varName;
+            if (j < qconstrExpr.getLinExpr().size() - 1 || qconstrExpr.size() > 0) {
+                std::cout << " + ";
+            }
+        }
+
+        // Print quadratic terms
+        for (int j = 0; j < qconstrExpr.size(); ++j) {
+            GRBVar var1 = qconstrExpr.getVar1(j);
+            GRBVar var2 = qconstrExpr.getVar2(j);
+            double qcoeff = qconstrExpr.getCoeff(j);
+            std::string varName1 = var1.get(GRB_StringAttr_VarName);
+            std::string varName2 = var2.get(GRB_StringAttr_VarName);
+
+            std::cout << qcoeff << " * " << varName1 << " * " << varName2;
+            if (j < qconstrExpr.size() - 1) {
+                std::cout << " + ";
+            }
+        }
+
+        if (qsense == GRB_EQUAL) {
+            std::cout << " == ";
+        } else if (qsense == GRB_LESS_EQUAL) {
+            std::cout << " <= ";
+        } else if (qsense == GRB_GREATER_EQUAL) {
+            std::cout << " >= ";
+        }
+
+        std::cout << qrhs << std::endl;
+    }
+
+    delete[] qconstraints;
+}
+
 void printConstraints(GRBModel& model) {
     GRBConstr* constraints = model.getConstrs();
     int numConstraints = model.get(GRB_IntAttr_NumConstrs);
@@ -256,9 +308,9 @@ std::string reverse_strand(std::string seq)
     return rev_seq;
 }
 
-std::unordered_map<uint64_t, Anchor> ILP_index::index_kmers(int32_t hap)
+std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
 {
-    std::unordered_map<uint64_t, Anchor> kmer_index;
+    std::vector<std::pair<uint64_t, Anchor>> kmer_index;
     std::string haplotype;
     for (size_t i = 0; i < paths[hap].size(); i++) {
         haplotype += node_seq[paths[hap][i]];
@@ -267,34 +319,34 @@ std::unordered_map<uint64_t, Anchor> ILP_index::index_kmers(int32_t hap)
     int32_t count_kmers = window + k_mer - 1;
 
     for (int32_t i = 0; i <= haplotype.size() - count_kmers; i++) {
-        uint64_t fwd_hash = std::numeric_limits<uint64_t>::max();
-        uint64_t rev_hash = std::numeric_limits<uint64_t>::max();
+        std::string fwd_kmer = std::string(k_mer, 'Z');
+        std::string rev_kmer = std::string(k_mer, 'Z');
         int32_t start_idx_fwd = i;
         int32_t start_idx_rev = i;
 
         for (size_t j = i; j < i + window; j++) {
             std::string kmer = haplotype.substr(j, k_mer);
-            uint64_t local_fwd_hash = fnv1a_hash_64(kmer);
-            uint64_t local_rev_hash = fnv1a_hash_64(reverse_strand(kmer));
+            std::string local_fwd_kmer = kmer;
+            std::string local_rev_kmer = reverse_strand(kmer);
 
-            if (local_fwd_hash < fwd_hash) {
-                fwd_hash = local_fwd_hash;
+            if (local_fwd_kmer < fwd_kmer) {
+                fwd_kmer = local_fwd_kmer;
                 start_idx_fwd = j;
             }
 
-            if (local_rev_hash < rev_hash) {
-                rev_hash = local_rev_hash;
+            if (local_rev_kmer < rev_kmer) {
+                rev_kmer = local_rev_kmer;
                 start_idx_rev = j;
             }
         }
 
-        if (fwd_hash == rev_hash) continue; // Cannonical k-mer
+        if (fwd_kmer == rev_kmer) continue; // Cannonical k-mer
 
-        uint64_t hash = fwd_hash;
+        uint64_t hash = fnv1a_hash_64(fwd_kmer);
         int32_t start_idx = start_idx_fwd;
 
-        if (fwd_hash > rev_hash) {
-            hash = rev_hash;
+        if (fwd_kmer > rev_kmer) {
+            hash = fnv1a_hash_64(rev_kmer);
             start_idx = start_idx_rev;
         }
 
@@ -303,7 +355,7 @@ std::unordered_map<uint64_t, Anchor> ILP_index::index_kmers(int32_t hap)
         for (size_t j = start_idx; j < start_idx + k_mer; j++) {
             anchor.k_mers.push_back(paths[hap][j]);
         }
-        kmer_index[hash] = anchor; // unique k-mer
+        kmer_index.push_back(std::make_pair(hash, anchor));
     }
 
     return kmer_index;
@@ -315,29 +367,29 @@ std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq)
     std::set<uint64_t> read_hashes;
     int32_t count_kmers = window + k_mer - 1;
     for (int32_t i = 0; i <= read_seq.size() - count_kmers; i++) {
-        uint64_t fwd_hash = std::numeric_limits<uint64_t>::max();
-        uint64_t rev_hash = std::numeric_limits<uint64_t>::max();
+        std::string fwd_kmer = std::string(k_mer, 'Z'); // ZZ...Z
+        std::string rev_kmer = std::string(k_mer, 'Z');
 
         for (size_t j = i; j < i + window; j++) {
             std::string kmer = read_seq.substr(j, k_mer);
-            uint64_t local_fwd_hash = fnv1a_hash_64(kmer);
-            uint64_t local_rev_hash = fnv1a_hash_64(reverse_strand(kmer));
+            std::string local_fwd_kmer = kmer;
+            std::string local_rev_kmer = reverse_strand(kmer);
 
-            if (local_fwd_hash < fwd_hash) {
-                fwd_hash = local_fwd_hash;
+            if (local_fwd_kmer < fwd_kmer) {
+                fwd_kmer = local_fwd_kmer;
             }
 
-            if (local_rev_hash < rev_hash) {
-                rev_hash = local_rev_hash;
+            if (local_rev_kmer < rev_kmer) {
+                rev_kmer = local_rev_kmer;
             }
         }
 
-        if (fwd_hash == rev_hash) continue; // Cannonical k-mer
+        if (fwd_kmer == rev_kmer) continue; // Cannonical k-mer
 
-        uint64_t hash = fwd_hash;
+        uint64_t hash = fnv1a_hash_64(fwd_kmer);
 
-        if (fwd_hash > rev_hash) {
-            hash = rev_hash;
+        if (fwd_kmer > rev_kmer) {
+            hash = fnv1a_hash_64(rev_kmer);
         }
 
         read_hashes.insert(hash);
@@ -346,16 +398,36 @@ std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq)
     return read_hashes;
 }
 
-std::vector<Anchor> ILP_index::compute_anchors(std::unordered_map<uint64_t, Anchor> &minimizers, std::set<uint64_t> &read_hashes)
+std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::vector<std::pair<uint64_t, Anchor>> &minimizers, std::map<uint64_t, int32_t> &read_hashes)
 {
-    std::vector<Anchor> anchors;
-    for (auto hash: read_hashes)
+    std::vector<std::vector<std::vector<int32_t>>> anchors;
+    std::vector<std::vector<std::pair<int32_t, std::vector<int32_t>>>> local_anchors(num_threads);
+    #pragma omp parallel for num_threads(num_threads)
+    for (int64_t i = 0; i < minimizers.size(); i++)
     {
-        if (minimizers.find(hash) != minimizers.end())
+        int32_t tid = omp_get_thread_num();
+        auto minimizer  = minimizers[i];
+        auto hash = minimizer.first;
+        if (read_hashes.find(hash) != read_hashes.end()) // Found a match
         {
-            anchors.push_back(minimizers[hash]);
+            std::vector<int32_t> anchor;
+            for (size_t j = 0; j < minimizer.second.k_mers.size(); j++)
+            {
+                anchor.push_back(minimizer.second.k_mers[j]);
+            }
+            local_anchors[tid].push_back(std::make_pair(read_hashes[hash], anchor)); // id, anchor
         }
     }
+
+    anchors.resize(read_hashes.size());
+    for (int32_t i = 0; i < num_threads; i++)
+    {
+        for (auto anchor: local_anchors[i])
+        {
+            anchors[anchor.first].push_back(anchor.second);
+        }
+    }
+    local_anchors.clear();
     return anchors;
 }
 
@@ -387,52 +459,68 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     int32_t num_reads = ip_reads.size();
 
     // Index the kmers
-    std::vector<std::unordered_map<uint64_t, Anchor>> kmer_index(num_walks);
+    std::vector<std::vector<std::pair<uint64_t, Anchor>>> kmer_index(num_walks);
     #pragma omp parallel for num_threads(num_threads)
     for (int32_t h = 0; h < num_walks; h++)
     {
         kmer_index[h] = index_kmers(h);
-        // fprintf(stderr, "Hap : %d, Kmers : %d\n", h, kmer_index[h].size());
+        fprintf(stderr, "Hap : %d, Kmers : %d\n", h, kmer_index[h].size());
     }
     fprintf(stderr, "[M::%s::%.3f*%.2f] Haplotypes sketched\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
     // Compute the anchors
     int64_t num_kmers = 0;
     std::vector<std::set<uint64_t>> Read_hashes(num_reads);
-    std::set<uint64_t> Unique_read_hashes;
+    std::map<uint64_t, int32_t> Sp_R;
     #pragma omp parallel for num_threads(num_threads)
     for (int32_t r = 0; r < num_reads; r++)
     {
         Read_hashes[r] = compute_hashes(ip_reads[r].second);
     }
     // push all the unique read hashes to a set
+    int32_t max_Sp_R = INT16_MAX;
+    int32_t count_sp_r = 0;
     for (int32_t r = 0; r < num_reads; r++)
     {
         for (auto hash: Read_hashes[r])
         {
-            Unique_read_hashes.insert(hash);
+            Sp_R[hash] = count_sp_r;
+            count_sp_r++;
+            if (count_sp_r > max_Sp_R)
+            {
+                break;
+            }
         }
     }
     // clear the read hashes
     Read_hashes.clear();
 
-    std::vector<std::vector<Anchor>> Anchor_hits(num_walks);
-    std::vector<std::vector<std::vector<int32_t>>> Kmers(num_walks);
+    // print Indexed reads with spectrum size: Sp_R.size()
+    fprintf(stderr, "[M::%s::%.3f*%.2f] Indexed reads with spectrum size: %d\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), Sp_R.size());
+
+    std::vector<std::vector<std::vector<std::vector<int32_t>>>> Anchor_hits(Sp_R.size(), std::vector<std::vector<std::vector<int32_t>>>(num_walks));
     // compute the anchors
-    #pragma omp parallel for num_threads(num_threads)
     for (int32_t h = 0; h < num_walks; h++)
     {
-        Anchor_hits[h] = compute_anchors(kmer_index[h], Unique_read_hashes);
-        for (auto anchor: Anchor_hits[h])
+        std::vector<std::vector<std::vector<int32_t>>> loc_match = compute_anchors(kmer_index[h], Sp_R); // parallel execution
+        for (int32_t r = 0; r < Sp_R.size(); r++)
         {
-            Kmers[h].push_back(anchor.k_mers);
-        }
+            for (auto anchor: loc_match[r])
+            {
+                Anchor_hits[r][h].push_back(anchor);
+            }
+        } 
     }
     // find number of kmers
     for (int32_t h = 0; h < num_walks; h++)
     {
-        num_kmers += Kmers[h].size();
-        // printf("Hap : %d, Anchors : %d\n", h, Kmers[h].size());
+        int32_t loc_count = 0;
+        for (int32_t r = 0; r < Sp_R.size(); r++)
+        {
+            loc_count += Anchor_hits[r][h].size();
+        }
+        num_kmers += loc_count;
+        printf("Hap : %d, Anchors : %d\n", h, loc_count);
     }
 
     fprintf(stderr, "[M::%s::%.3f*%.2f] %d unique k-mers matches found\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), num_kmers);
@@ -466,24 +554,36 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         // create map to store variables
         std::map<std::string, GRBVar> vars;
 
+        printf("Start creating variables\n");
+
         // Kmer constraints
-        for (int32_t i = 0; i < num_walks; i++) {
-            for (int32_t j = 0; j < Kmers[i].size(); j++) {
-                GRBLinExpr kmer_expr;
-                for (int32_t k = 1; k < Kmers[i][j].size(); k++) {
-                    int32_t u = Kmers[i][j][k-1];
-                    int32_t v = Kmers[i][j][k];
-                    std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
-                    vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
-                    kmer_expr += vars[var_name];
+        for (int32_t i = 0; i < Sp_R.size(); i++) {
+            GRBQuadExpr kmer_expr;
+            GRBLinExpr z_expr;
+            for (int32_t j = 0; j < num_walks; j++) {
+                for (int32_t k = 0; k < Anchor_hits[i][j].size(); k++) {
+                    std::string extra_var = "z_" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k);
+                    GRBVar kmer_expr_var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, extra_var);
+                    for (int32_t l = 1; l < Anchor_hits[i][j][k].size(); l++) {
+                        int32_t u = Anchor_hits[i][j][k][l - 1];
+                        int32_t v = Anchor_hits[i][j][k][l];
+                        std::string var_name = std::to_string(u) + "_" + std::to_string(j) + "_" + std::to_string(v) + "_" + std::to_string(j);
+                        if (vars.find(var_name) == vars.end()) // Variable does not exist
+                        {
+                            vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        }
+                        kmer_expr += vars[var_name] * kmer_expr_var;
+                    }
+                    z_expr += kmer_expr_var;
                 }
-                std::string exra_var = "z_" + std::to_string(i) + "_" + std::to_string(j);
-                GRBVar kmer_expr_var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, exra_var);
-                vars[exra_var] = kmer_expr_var;
-                std::string constraint_name = "Kmer_constraints_" + std::to_string(i) + "_" + std::to_string(j);
-                int32_t kmer_weight = Kmers[i][j].size() - 1;
-                model.addConstr(kmer_expr == kmer_weight * kmer_expr_var, constraint_name);
             }
+            std::string constraint_name = "Kmer_constraints_" + std::to_string(i);
+            int32_t kmer_weight = k_mer - 1;
+            std::string z_var = "z_" + std::to_string(i);
+            GRBVar z_var_r = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, z_var);
+            vars[z_var] = z_var_r;
+            model.addQConstr(kmer_expr == kmer_weight * z_var_r, constraint_name);
+            model.addConstr(z_expr == z_var_r, "Z_constraint_" + std::to_string(i));
         }
 
         fprintf(stderr, "[M::%s::%.3f*%.2f] Kmer constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
@@ -521,14 +621,12 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                         if (i != j) {
                             GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
                             vars[var_name] = var;
-                            vtx_expr += 2 * var;
+                            vtx_expr += 1 * var;
                         } else {
                             if (vars.find(var_name) == vars.end()) { // Variable does not exist
                                 GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
                                 vars[var_name] = var;
-                                vtx_expr += var;
-                            }else {
-                                vtx_expr += 0 * vars[var_name]; // Already variable exists in Kmers hence no need to add
+                                vtx_expr += 0 * var;
                             }
                         }
                     }
@@ -609,6 +707,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         if (debug)
         {
             printConstraints(model);
+            printQuadraticConstraints(model);
             printNonZeroVariables(model);
         }
 
@@ -663,7 +762,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             return top_order_map[a] < top_order_map[b];
         }); // To ensure the path is in topological order
         // verify the path vertices by checking if there exist and edge between the vertices
-        for (int i = 1; i < path_edges.size(); i++)
+        for (int i = 1; i < hap_path.size(); i++)
         {
             int32_t u = hap_path[i - 1];
             int32_t v = hap_path[i];
