@@ -466,8 +466,6 @@ std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::v
             {
                 anchor.push_back(minimizer.second.k_mers[j]);
             }
-            // print read_hashes[hash]
-            printf("Hash : %d\n", read_hashes[hash]);
             local_anchors[tid].push_back(std::make_pair(read_hashes[hash], anchor)); // id, anchor
         }
     }
@@ -531,19 +529,20 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         Read_hashes[r] = compute_hashes(ip_reads[r].second);
     }
     // push all the unique read hashes to a set
-    int32_t max_Sp_R = INT16_MAX;
-    int32_t count_sp_r = 0;
+    int32_t max_r = INT32_MAX;
     for (int32_t r = 0; r < num_reads; r++)
     {
         for (auto hash: Read_hashes[r])
         {
-            Sp_R[hash] = count_sp_r;
-            count_sp_r++;
-            if (count_sp_r > max_Sp_R)
-            {
-                break;
-            }
+            Sp_R[hash]++;
         }
+        if (r > max_r) break;
+    }
+    // reset Sp_R values from 0 to max_Sp_R
+    int32_t count_sp_r = 0;
+    for (auto &hash: Sp_R)
+    {
+        hash.second = count_sp_r++;
     }
     // clear the read hashes
     Read_hashes.clear();
@@ -695,7 +694,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             z_expr += (1 - vars[z_var]);
         }
 
-        obj = start_expr + vtx_expr + end_expr + z_expr;
+        obj =  vtx_expr + z_expr;
 
         fprintf(stderr, "[M::%s::%.3f*%.2f] Objective function added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
@@ -755,6 +754,9 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             model.addConstr(e_expr == 0, constraint_name);
         }
 
+        // clear vars
+        vars.clear();
+
         fprintf(stderr, "[M::%s::%.3f*%.2f] Flow conservation constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
         model.setObjective(obj, GRB_MINIMIZE);
@@ -764,7 +766,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         fprintf(stderr, "[M::%s::%.3f*%.2f] Model optimized\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
         // Print constraints
-        bool debug = true;
+        bool debug = false;
         if (debug)
         {
             printObjectiveFunction(model);
