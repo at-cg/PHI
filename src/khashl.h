@@ -28,8 +28,7 @@
 
 #define AC_VERSION_KHASHL_H "0.1"
 
-// #include <stdlib.h>
-#include <jemalloc/jemalloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 #include "kalloc.h"

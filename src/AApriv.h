@@ -1,8 +1,7 @@
 #ifndef MGPRIV_H
 #define MGPRIV_H
 
-// #include <stdlib.h>
-#include <jemalloc/jemalloc.h>
+#include <stdlib.h>
 #include "AlphaASM.h"
 
 // by  GS

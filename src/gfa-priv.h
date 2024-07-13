@@ -1,7 +1,7 @@
 #ifndef __GFA_PRIV_H__
 #define __GFA_PRIV_H__
 
-#include <jemalloc/jemalloc.h>
+#include <stdlib.h>
 #include "gfa.h"
 
 

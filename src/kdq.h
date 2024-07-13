@@ -1,8 +1,7 @@
 #ifndef __AC_KDQ_H
 #define __AC_KDQ_H
 
-// #include <stdlib.h>
-#include <jemalloc/jemalloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include "kalloc.h"

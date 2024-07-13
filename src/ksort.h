@@ -28,8 +28,7 @@
 #ifndef AC_KSORT_H
 #define AC_KSORT_H
 
-// #include <stdlib.h>
-#include <jemalloc/jemalloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 

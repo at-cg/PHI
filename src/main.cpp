@@ -1,5 +1,5 @@
 #include <iostream>
-#include <jemalloc/jemalloc.h>
+#include <stdlib.h>
 #include "gfa-priv.h"
 #include "AApriv.h"
 #include "ketopt.h"

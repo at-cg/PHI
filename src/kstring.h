@@ -26,8 +26,7 @@
 #ifndef KSTRING_H
 #define KSTRING_H
 
-// #include <stdlib.h>
-#include <jemalloc/jemalloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdarg.h>

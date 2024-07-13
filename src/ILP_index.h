@@ -1,5 +1,5 @@
 #include <iostream>
-#include <jemalloc/jemalloc.h>
+#include <stdlib.h>
 #include <omp.h>
 #include "AApriv.h"
 #include <assert.h>

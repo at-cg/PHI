@@ -1,5 +1,4 @@
-// #include <stdlib.h>
-#include <jemalloc/jemalloc.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
 #include "gfa-priv.h"
