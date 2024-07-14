@@ -738,28 +738,37 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         for (auto u = 0; u < n_vtx; u++) {
             if (in_nodes[u].size() == 0 || adj_list[u].size() == 0) continue;
 
-            GRBLinExpr in_expr;
-            for (auto v: in_nodes[u]) {
-                for (auto i: haps[v]) {
-                    for (auto j: haps[u]) {
-                        std::string var_name = std::to_string(v) + "_" + std::to_string(i) + "_" + std::to_string(u) + "_" + std::to_string(j);
-                        in_expr += vars[var_name];
+            for (int32_t h = 0; h < num_walks; h++)
+            {
+                bool is_added = false;
+                GRBLinExpr in_expr;
+                for (auto v: in_nodes[u]) {
+                    for (auto i: haps[v]) {
+                        for (auto j: haps[u]) {
+                            if (h != j) continue;
+                            is_added = true;
+                            std::string var_name = std::to_string(v) + "_" + std::to_string(i) + "_" + std::to_string(u) + "_" + std::to_string(j);
+                            in_expr += vars[var_name];
+                        }
                     }
                 }
-            }
 
-            GRBLinExpr out_expr;
-            for (auto v: adj_list[u]) {
-                for (auto i: haps[u]) {
-                    for (auto j: haps[v]) {
-                        std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
-                        out_expr += vars[var_name];
+                GRBLinExpr out_expr;
+                for (auto v: adj_list[u]) {
+                    for (auto i: haps[u]) {
+                        if (h != i) continue;
+                        for (auto j: haps[v]) {
+                            std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
+                            out_expr += vars[var_name];
+                        }
                     }
                 }
-            }
 
-            std::string constraint_name = "Flow_conservation_" + std::to_string(u);
-            model.addConstr(in_expr == out_expr, constraint_name);
+                if (is_added) {
+                    std::string constraint_name = "Flow_conservation_" + std::to_string(u) + "_" + std::to_string(h);
+                    model.addConstr(in_expr == out_expr, constraint_name);
+                }
+            }
         }
 
         // Flow constraints for source nodes
@@ -805,10 +814,10 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         bool debug = false;
         if (debug)
         {
-            printObjectiveFunction(model);
+            // printObjectiveFunction(model);
             printConstraints(model);
-            printQuadraticConstraints(model);
-            printNonZeroVariables(model);
+            // printQuadraticConstraints(model);
+            // printNonZeroVariables(model);
         }
 
         // Vector to store the names of non-zero binary variables
@@ -851,9 +860,13 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             path_edges.push_back(std::make_pair(u, v));
             path_strs_set.insert(hap_1);
             path_strs_set.insert(hap_2);
+            // pritn token[0] -> token[3]
+            // std::cout << tokens[0] << "->" << tokens[1] << "->" << tokens[2] << "->" << tokens[3] << std::endl;
         }
         path_strs.clear();
         std::vector<std::string> path_strs_vec(path_strs_set.begin(), path_strs_set.end());
+
+        std::cout << "Haplotype Path " << std::endl;
 
         // pritn path_strs_vec
         for (int i = 0; i < path_strs_vec.size(); i++)

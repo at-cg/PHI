@@ -1,8 +1,2 @@
 >test_read_1
-ATCG
->test_read_2
-AAA
->test_read_3
-ATAC
->test_read_4
-TTAC
+ATCGATCATACGC
