@@ -1,11 +1,23 @@
 H	VN:Z:1.1
-S	s1	A
-S	s2	C
-S	s3	G
-S	s4	T
+S	s1	ATCG
+S	s2	ATC
+S	s3	AAA
+S	s4	ATAC
+S	s5	TTAC
+S	s6	TGAC
+S	s7	GCAT
+S	s8	CATG
 L	s1	+	s2	+	0M
 L	s1	+	s3	+	0M
 L	s2	+	s4	+	0M
 L	s3	+	s4	+	0M
-W	test_hap_1	1	chromosome_id	0	3	>s1>s2>s4
-W	test_hap_2	2	chromosome_id	0	3	>s1>s3>s4
+L	s4	+	s5	+	0M
+L	s4	+	s6	+	0M
+L	s4	+	s7	+	0M
+L	s5	+	s8	+	0M
+L	s6	+	s8	+	0M
+L	s7	+	s8	+	0M
+W	test_hap_1	1	chromosome_id	0	3	>s1>s2>s4>s7>s8
+W	test_hap_2	2	chromosome_id	0	3	>s1>s2>s4>s6>s8
+W	test_hap_3	3	chromosome_id	0	3	>s1>s3>s4>s7>s8
+W	test_hap_4	4	chromosome_id	0	3	>s1>s3>s4>s6>s8
