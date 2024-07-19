@@ -30,6 +30,7 @@
 #include <tuple>
 #include <map>
 #include <sstream>
+#include <unordered_set>
 
 // Gurobi
 #include "gurobi_c++.h"
@@ -51,6 +52,7 @@ class ILP_index {
         std::vector<std::string> node_seq;
         std::vector<std::vector<uint32_t>> paths;
         std::vector<std::vector<uint32_t>> haps;
+        std::vector<std::vector<int32_t>> in_paths;
         std::vector<int32_t> top_order;
         std::vector<int32_t> top_order_map;
 
@@ -68,6 +70,7 @@ class ILP_index {
         int32_t window;
         int32_t bucket_bits;
         int32_t max_occ;
+        int32_t recombination;
 
         // Constructor
         ILP_index(gfa_t *g);	// This is constructor

@@ -97,6 +97,7 @@ void::ILP_index::read_gfa()
     num_walks = g->n_walk; // count number of walks
     haps.resize(n_vtx);
     paths.resize(num_walks);
+    in_paths.resize(num_walks, std::vector<int32_t>(n_vtx, 0));
 
     // Fill the paths
     for (size_t w = 0; w < g->n_walk; w++)
@@ -112,6 +113,7 @@ void::ILP_index::read_gfa()
 			v /= 2; // for forward strand
             haps[v].push_back(w); // Map forward walk to haplotype
             paths[w].push_back(v); // Map forward walk to path
+            in_paths[w][v] = 1;
         }
     }
 
@@ -366,6 +368,7 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
     for (size_t i = 0; i < paths[hap].size(); i++) {
         haplotype += node_seq[paths[hap][i]];
     }
+    if (haplotype.size() < window + k_mer - 1) return kmer_index;
 
     int32_t hap_size = haplotype.size();
     std::vector<int32_t> idx_vtx_map(hap_size, -1);
@@ -413,20 +416,16 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
 
         Anchor anchor;
         anchor.h = hap;
-        std::set<int32_t> unique_vtxs;
-        for (size_t j = start_idx; j < start_idx + k_mer; j++) {
-            // anchor.k_mers.push_back(paths[hap][j]);
-            unique_vtxs.insert(idx_vtx_map[j]);
-        }
+        std::unordered_set<int32_t> set;
         std::vector<int32_t> unique_vtxs_vec;
-        for (auto v: unique_vtxs) {
-            unique_vtxs_vec.push_back(v);
+        for (size_t j = start_idx; j < start_idx + k_mer; j++) {
+            int32_t value = idx_vtx_map[j];
+            if (set.find(value) == set.end()) {
+                set.insert(value);
+                unique_vtxs_vec.push_back(value);
+            }
         }
-        unique_vtxs.clear();
-        // sort based on topological order
-        std::sort(unique_vtxs_vec.begin(), unique_vtxs_vec.end(), [&](int32_t a, int32_t b) {
-            return top_order_map[a] < top_order_map[b];
-        });
+        set.clear();
         // push the anchor
         for (auto v: unique_vtxs_vec) {
             anchor.k_mers.push_back(v);
@@ -442,6 +441,7 @@ std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq)
     // Find the minimizers in the read and match with the haplotype and return the anchors
     std::set<uint64_t> read_hashes;
     int32_t count_kmers = window + k_mer - 1;
+    if (read_seq.size() < count_kmers) return read_hashes;
     for (int32_t i = 0; i <= read_seq.size() - count_kmers; i++) {
         std::string fwd_kmer = std::string(k_mer, 'Z'); // ZZ...Z
         std::string rev_kmer = std::string(k_mer, 'Z');
@@ -496,11 +496,15 @@ std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::v
     }
 
     anchors.resize(read_hashes.size());
+    std::map<int32_t, int32_t> count_matches;
+    int32_t max_matches = INT32_MAX;
     for (int32_t i = 0; i < num_threads; i++)
     {
         for (auto anchor: local_anchors[i])
         {
-            anchors[anchor.first].push_back(anchor.second);
+            if (count_matches[anchor.first] >= max_matches) continue;
+            anchors[anchor.first].push_back(anchor.second);  // (id -> anchor_path)
+            count_matches[anchor.first]++;
         }
     }
     local_anchors.clear();
@@ -559,7 +563,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     {
         for (auto hash: Read_hashes[r])
         {
-            Sp_R[hash]++;
+            Sp_R[hash]++; // duplicate hashes are not allowed
         }
         if (r > max_r) break;
     }
@@ -567,8 +571,9 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     int32_t count_sp_r = 0;
     for (auto &hash: Sp_R)
     {
-        hash.second = count_sp_r++;
+        hash.second = count_sp_r++; // unique hash -> map_id
     }
+    assert(Sp_R.size() == count_sp_r);
     // clear the read hashes
     Read_hashes.clear();
 
@@ -600,6 +605,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         num_kmers += loc_count;
         printf("Hap : %d, Anchors : %d\n", h, loc_count);
     }
+    Sp_R.clear();
 
     fprintf(stderr, "[M::%s::%.3f*%.2f] %d unique k-mers matches found\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), num_kmers);
 
@@ -627,7 +633,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
 
         // Set parameters to speed up the model
         model.set("PreSparsify", "1");
-        model.set(GRB_DoubleParam_NodefileStart, 128.0); // Beyond this memory, it will write to disk
+        model.set(GRB_DoubleParam_NodefileStart, 80.0); // Beyond this memory, it will write to disk
 
         // create map to store variables
         std::map<std::string, GRBVar> vars;
@@ -636,10 +642,10 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         // print started ILP model
         fprintf(stderr, "[M::%s::%.3f*%.2f] ILP model started\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
-        int32_t c_1 = 1; // INF no recombination
+        int32_t c_1 = recombination; // INF no recombination
 
         // Kmer constraints
-        for (int32_t i = 0; i < Sp_R.size(); i++) {
+        for (int32_t i = 0; i < count_sp_r; i++) {
             GRBQuadExpr kmer_expr;
             GRBLinExpr z_expr;
             int32_t temp = 0;
@@ -676,6 +682,14 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             }
         }
 
+        // clear memory
+        for (int32_t i = 0; i < num_walks; i++)
+        {
+            kmer_index[i].clear();
+        }
+        kmer_index.clear();
+        Anchor_hits.clear();
+
         fprintf(stderr, "[M::%s::%.3f*%.2f] Kmer constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
         // Create the objective function
@@ -701,28 +715,54 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         model.addConstr(start_expr == 1, "Start_expr");
         model.addConstr(end_expr == 1, "End_expr");
 
-        // Add vertex constraints from adj_list
+        // Add vertex constraints from paths
         GRBLinExpr vtx_expr;
-        for (auto u = 0; u < n_vtx; u++) {
-            for (auto v : adj_list[u]) {
-                for (auto i: haps[u]) {
-                    for (auto j: haps[v]) {
-                        std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
-                        if (i != j) {
-                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
-                            vars[var_name] = var;
-                            vtx_expr += c_1 * var;
-                        } else {
-                            if (vars.find(var_name) == vars.end()) { // Variable does not exist
+        // GRBLinExpr recomb_expr;
+
+        // w/o recombination
+        for (int32_t i = 0; i < num_walks; i++)
+        {
+            for (int32_t idx = 0; idx < paths[i].size() - 1; idx++)
+            {
+                int32_t u = paths[i][idx];
+                int32_t v = paths[i][idx + 1];
+                std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
+                if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                    vars[var_name] = var;
+                    vtx_expr += 0 * var; // no need without recombination
+                }
+            }
+        }
+
+        // with recombination
+        for (int32_t i = 0; i < num_walks; i++)
+        {
+            for (int32_t idx = 0; idx < paths[i].size() - 1; idx++)
+            {
+                int32_t u = paths[i][idx];
+                for (auto v : adj_list[u])
+                {
+                    for (auto j : haps[v])
+                    {
+                        if (i != j)
+                        {
+                            std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
+                            if (vars.find(var_name) == vars.end()) // Variable does not exist
+                            {
                                 GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
                                 vars[var_name] = var;
-                                vtx_expr += 0 * var;
+                                vtx_expr += c_1 * var;
+                                // recomb_expr += var;
                             }
                         }
                     }
                 }
             }
         }
+        // int32_t max_recomb = 100;
+        // model.addConstr(recomb_expr <= max_recomb, "Recombination_constraint_less");
+        // model.addConstr(recomb_expr >= max_recomb, "Recombination_constraint_greater");
 
         // add (1-z_{i}) constraints
         GRBLinExpr z_expr;
@@ -734,42 +774,69 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
 
         fprintf(stderr, "[M::%s::%.3f*%.2f] Objective function added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
-        // Flow constraints for each vertex
-        for (auto u = 0; u < n_vtx; u++) {
-            if (in_nodes[u].size() == 0 || adj_list[u].size() == 0) continue;
-
-            for (int32_t h = 0; h < num_walks; h++)
+        // paths based flow constraints
+        for (int32_t i = 0; i < num_walks; i++)
+        {
+            for (int32_t idx = 0; idx < paths[i].size(); idx++)
             {
-                bool is_added = false;
+                if (idx == 0 || idx == paths[i].size() - 1) continue; // skip source and sink nodes
                 GRBLinExpr in_expr;
-                for (auto v: in_nodes[u]) {
-                    for (auto i: haps[v]) {
-                        for (auto j: haps[u]) {
-                            if (h != j) continue;
-                            is_added = true;
-                            std::string var_name = std::to_string(v) + "_" + std::to_string(i) + "_" + std::to_string(u) + "_" + std::to_string(j);
+                GRBLinExpr out_expr;
+                int32_t v = paths[i][idx];
+                int32_t v_in = paths[i][idx - 1];
+                int32_t v_out = paths[i][idx + 1];
+                std::string var_name = std::to_string(v_in) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
+                if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                    vars[var_name] = var;
+                }
+                in_expr += vars[var_name];
+
+                var_name = std::to_string(v) + "_" + std::to_string(i) + "_" + std::to_string(v_out) + "_" + std::to_string(i);
+                if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                    vars[var_name] = var;
+                }
+                out_expr += vars[var_name];
+                
+                // In expression
+                for (auto u : in_nodes[v])
+                {
+                    for (auto j : haps[u])
+                    {
+                        if (i != j)
+                        {
+                            var_name = std::to_string(u) + "_" + std::to_string(j) + "_" + std::to_string(v) + "_" + std::to_string(i);
+                            if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                vars[var_name] = var;
+                            }
                             in_expr += vars[var_name];
                         }
                     }
                 }
 
-                GRBLinExpr out_expr;
-                for (auto v: adj_list[u]) {
-                    for (auto i: haps[u]) {
-                        if (h != i) continue;
-                        for (auto j: haps[v]) {
-                            std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
+                // Out expression
+                for (auto u : adj_list[v])
+                {
+                    for (auto j : haps[u])
+                    {
+                        if (i != j)
+                        {
+                            var_name = std::to_string(v) + "_" + std::to_string(i) + "_" + std::to_string(u) + "_" + std::to_string(j);
+                            if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                vars[var_name] = var;
+                            }
                             out_expr += vars[var_name];
                         }
                     }
                 }
-
-                if (is_added) {
-                    std::string constraint_name = "Flow_conservation_" + std::to_string(u) + "_" + std::to_string(h);
-                    model.addConstr(in_expr == out_expr, constraint_name);
-                }
+                std::string constraint_name = "Flow_conservation_" + std::to_string(v) + "_" + std::to_string(i);
+                model.addConstr(in_expr == out_expr, constraint_name);
             }
         }
+        
 
         // Flow constraints for source nodes
         for (int32_t i = 0; i < num_walks; i++) {
@@ -778,7 +845,12 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             s_expr += vars["s_" + std::to_string(u) + "_" + std::to_string(i)];
             for (auto v: adj_list[u]) {
                 for (auto j: haps[v]) {
-                    s_expr -= vars[std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j)];
+                    std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
+                    if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        vars[var_name] = var;
+                    }
+                    s_expr -= vars[var_name];
                 }
             }
             std::string constraint_name = "Source_conservation_" + std::to_string(u) + "_" + std::to_string(i);
@@ -791,10 +863,20 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             GRBLinExpr e_expr;
             for (auto v: in_nodes[u]) {
                 for (auto j: haps[v]) {
-                    e_expr += vars[std::to_string(v) + "_" + std::to_string(j) + "_" + std::to_string(u) + "_" + std::to_string(i)];
+                    std::string var_name = std::to_string(v) + "_" + std::to_string(j) + "_" + std::to_string(u) + "_" + std::to_string(i);
+                    if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        vars[var_name] = var;
+                    }
+                    e_expr += vars[var_name];
                 }
             }
-            e_expr += -1 * vars[std::to_string(u) + "_" + std::to_string(i) + "_e"];
+            std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_e";
+            if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                vars[var_name] = var;
+            }
+            e_expr += -1 * vars[var_name];
             std::string constraint_name = "Sink_conservation_" + std::to_string(u) + "_" + std::to_string(i);
             model.addConstr(e_expr == 0, constraint_name);
         }
@@ -805,6 +887,12 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         fprintf(stderr, "[M::%s::%.3f*%.2f] Flow conservation constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
         model.setObjective(obj, GRB_MINIMIZE);
+
+        // Check the default optimality tolerance
+        double defaultTol = model.get(GRB_DoubleParam_OptimalityTol);
+        std::cout << "Default Optimality Tolerance: " << defaultTol << std::endl;
+        // Set optimality tolerance
+        model.set(GRB_DoubleParam_OptimalityTol, 1.00e-08);
         // Optimize model
         model.optimize();
 
@@ -814,10 +902,10 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         bool debug = false;
         if (debug)
         {
-            // printObjectiveFunction(model);
+            printObjectiveFunction(model);
             printConstraints(model);
-            // printQuadraticConstraints(model);
-            // printNonZeroVariables(model);
+            printQuadraticConstraints(model);
+            printNonZeroVariables(model);
         }
 
         // Vector to store the names of non-zero binary variables
@@ -843,6 +931,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         // print paths strs
         std::set<std::string> path_strs_set;
         std::vector<std::pair<int32_t, int32_t>> path_edges;
+        int32_t recombination_count = 0;
         for (int i = 0; i < path_strs.size(); i++)
         {
             // std::cout << path_strs[i] << std::endl;
@@ -860,33 +949,47 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             path_edges.push_back(std::make_pair(u, v));
             path_strs_set.insert(hap_1);
             path_strs_set.insert(hap_2);
+            if (hap_1 != hap_2) recombination_count++;
             // pritn token[0] -> token[3]
             // std::cout << tokens[0] << "->" << tokens[1] << "->" << tokens[2] << "->" << tokens[3] << std::endl;
         }
         path_strs.clear();
         std::vector<std::string> path_strs_vec(path_strs_set.begin(), path_strs_set.end());
 
-        std::cout << "Haplotype Path " << std::endl;
+        std::cout << "Haplotype Path: " << std::endl;
 
         // pritn path_strs_vec
+        int32_t hap_id = 4;
         for (int i = 0; i < path_strs_vec.size(); i++)
         {
-            std::cout << path_strs_vec[i] << "->";
+            std::cout << "->" << path_strs_vec[i];
+            hap_id = std::stoi(path_strs_vec[i]);
         }
         std::cout << std::endl;
+        std::cout << "Recombination count: " << recombination_count << std::endl;
 
         // generate a set of vertices from the path edges
         std::set<int32_t> path_vertices;
+        std::vector<int32_t> hap_path;
         for (int i = 0; i < path_edges.size(); i++)
         {
-            path_vertices.insert(path_edges[i].first);
-            path_vertices.insert(path_edges[i].second);
+            // path_vertices.insert(path_edges[i].first);
+            // path_vertices.insert(path_edges[i].second);
+            if (path_vertices.find(path_edges[i].first) == path_vertices.end())
+            {
+                path_vertices.insert(path_edges[i].first);
+                hap_path.push_back(path_edges[i].first);
+            }
+            if (path_vertices.find(path_edges[i].second) == path_vertices.end())
+            {
+                path_vertices.insert(path_edges[i].second);
+                hap_path.push_back(path_edges[i].second);
+            }
         }
-        std::vector<int32_t> hap_path(path_vertices.begin(), path_vertices.end());
-        // sort hap_path by top_order_map as key
         std::sort(hap_path.begin(), hap_path.end(), [&](int32_t a, int32_t b) {
             return top_order_map[a] < top_order_map[b];
         }); // To ensure the path is in topological order
+        
         // verify the path vertices by checking if there exist and edge between the vertices
         for (int i = 1; i < hap_path.size(); i++)
         {
@@ -906,7 +1009,9 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 fprintf(stderr, "Error: No edge between %d and %d\n", u, v);
                 exit(1);
             }
+            if (debug) std::cout << "(" << u << "," << v << ")" << "->";
         }
+        if (debug) std::cout << std::endl;
 
         // Get the path string and store in haplotype
         for (int i = 0; i < hap_path.size(); i++)

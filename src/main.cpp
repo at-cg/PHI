@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     bool debug = false;
     int32_t lambda = 10;
     int32_t scale_factor = 200;
-    int32_t recombination = 100000;
+    int32_t recombination = 1;
 
     int i, c, ret;
 	FILE *fp_help = stderr;
@@ -58,8 +58,6 @@ int main(int argc, char *argv[]) {
 		else if (c == 'k') ipt.k = atoi(o.arg);
 		else if (c == 't') opt.n_threads = atoi(o.arg);
         else if (c == 'g') opt.gfa_file = o.arg;
-        else if (c == 'l') lambda = atoi(o.arg);
-        else if (c == 's') scale_factor = atoi(o.arg);
         else if (c == 'R') recombination = atoi(o.arg);
         else if (c == 'r') opt.reads_file = o.arg;
         else if (c == 'o') opt.hap_file = o.arg;
@@ -77,7 +75,6 @@ int main(int argc, char *argv[]) {
 		fprintf(fp_help, "Options:\n");
 		fprintf(fp_help, "    -k INT       K-mer size (no larger than 28) [%d]\n", ipt.k);
 		fprintf(fp_help, "    -w INT       Minimizer window size [%d]\n", ipt.w);
-        fprintf(fp_help, "    -s INT       Scale factor [%d]\n", scale_factor);
         fprintf(fp_help, "    -R INT       Recombination penalty [%d]\n", recombination);
         fprintf(fp_help, "    -c INT       Maximum K-mer occurence [%d]\n", max_occ);
         fprintf(fp_help, "    -t INT       Threads [%d]\n", opt.n_threads);
@@ -117,6 +114,7 @@ int main(int argc, char *argv[]) {
     ILP_handle->window = ipt.w; // window size
     ILP_handle->bucket_bits = 14; // bucket bits
     ILP_handle->max_occ = max_occ; // maximum k-mer occurence
+    ILP_handle->recombination = recombination; // recombination penalty
 
 
     // Read the reads from "-r" file
