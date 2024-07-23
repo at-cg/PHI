@@ -635,8 +635,10 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         GRBModel model = GRBModel(env);
 
         // Set parameters to speed up the model
-        model.set("PreSparsify", "1");
-        model.set(GRB_DoubleParam_NodefileStart, 80.0); // Beyond this memory, it will write to disk
+        model.set("PreSparsify", "1"); // Sparsify the model
+        model.set("Heuristics", "0.50"); // Spent 50% time on heuristics
+        model.set("NodefileStart", "0.5"); // 0.5 GB nodefile start
+        model.set("Presolve", "2"); // Aggressive presolve to reduce the model size
 
         // create map to store variables
         std::map<std::string, GRBVar> vars;
