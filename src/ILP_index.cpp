@@ -487,6 +487,7 @@ std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::v
         if (read_hashes.find(hash) != read_hashes.end()) // Found a match
         {
             std::vector<int32_t> anchor;
+            std::string anchor_str = "";
             for (size_t j = 0; j < minimizer.second.k_mers.size(); j++)
             {
                 anchor.push_back(minimizer.second.k_mers[j]);
@@ -496,15 +497,23 @@ std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::v
     }
 
     anchors.resize(read_hashes.size());
-    std::map<int32_t, int32_t> count_matches;
-    int32_t max_matches = INT32_MAX;
+    std::map<std::string, int32_t> visited_anchor;
     for (int32_t i = 0; i < num_threads; i++)
     {
         for (auto anchor: local_anchors[i])
         {
-            if (count_matches[anchor.first] >= max_matches) continue;
+            std::string anchor_str = "";
+            for (auto v: anchor.second)
+            {
+                anchor_str += std::to_string(v) + "_";
+            }
+            if (visited_anchor.find(anchor_str) == visited_anchor.end()) // Not found in the map
+            {
+                visited_anchor[anchor_str] = 0;
+            }
+            visited_anchor[anchor_str]++;
+            if (visited_anchor[anchor_str] > max_occ) break;
             anchors[anchor.first].push_back(anchor.second);  // (id -> anchor_path)
-            count_matches[anchor.first]++;
         }
     }
     local_anchors.clear();
@@ -558,14 +567,12 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         Read_hashes[r] = compute_hashes(ip_reads[r].second);
     }
     // push all the unique read hashes to a set
-    int32_t max_r = INT32_MAX;
     for (int32_t r = 0; r < num_reads; r++)
     {
         for (auto hash: Read_hashes[r])
         {
             Sp_R[hash]++; // duplicate hashes are not allowed
         }
-        if (r > max_r) break;
     }
     // reset Sp_R values from 0 to max_Sp_R
     int32_t count_sp_r = 0;

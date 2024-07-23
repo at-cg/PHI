@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 	FILE *fp_help = stderr;
     int32_t help = 0;
     mg_verbose = 3;
-    int32_t max_occ = 100;
+    int32_t max_occ = 5;
 
 	mg_opt_set(0, &ipt, &opt);
 	o = KETOPT_INIT;
@@ -115,6 +115,7 @@ int main(int argc, char *argv[]) {
     ILP_handle->bucket_bits = 14; // bucket bits
     ILP_handle->max_occ = max_occ; // maximum k-mer occurence
     ILP_handle->recombination = recombination; // recombination penalty
+    ILP_handle->max_occ = max_occ; // maximum k-mer occurence
 
 
     // Read the reads from "-r" file
