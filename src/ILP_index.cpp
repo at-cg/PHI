@@ -433,6 +433,15 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
         kmer_index.push_back(std::make_pair(hash, anchor));
     }
 
+    std::map<uint64_t, Anchor> kmer_index_set;
+    for (auto kmer: kmer_index) {
+        kmer_index_set[kmer.first] = kmer.second;
+    }
+    kmer_index.clear();
+    for (auto kmer: kmer_index_set) {
+        kmer_index.push_back(kmer);
+    }
+
     return kmer_index;
 }
 
@@ -487,7 +496,6 @@ std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::v
         if (read_hashes.find(hash) != read_hashes.end()) // Found a match
         {
             std::vector<int32_t> anchor;
-            std::string anchor_str = "";
             for (size_t j = 0; j < minimizer.second.k_mers.size(); j++)
             {
                 anchor.push_back(minimizer.second.k_mers[j]);
@@ -497,22 +505,10 @@ std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::v
     }
 
     anchors.resize(read_hashes.size());
-    std::map<std::string, int32_t> visited_anchor;
     for (int32_t i = 0; i < num_threads; i++)
     {
         for (auto anchor: local_anchors[i])
         {
-            std::string anchor_str = "";
-            for (auto v: anchor.second)
-            {
-                anchor_str += std::to_string(v) + "_";
-            }
-            if (visited_anchor.find(anchor_str) == visited_anchor.end()) // Not found in the map
-            {
-                visited_anchor[anchor_str] = 0;
-            }
-            visited_anchor[anchor_str]++;
-            if (visited_anchor[anchor_str] > max_occ) break;
             anchors[anchor.first].push_back(anchor.second);  // (id -> anchor_path)
         }
     }

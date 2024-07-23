@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
 		fprintf(fp_help, "    -k INT       K-mer size (no larger than 28) [%d]\n", ipt.k);
 		fprintf(fp_help, "    -w INT       Minimizer window size [%d]\n", ipt.w);
         fprintf(fp_help, "    -R INT       Recombination penalty [%d]\n", recombination);
-        fprintf(fp_help, "    -c INT       Maximum K-mer occurence [%d]\n", max_occ);
+        // fprintf(fp_help, "    -c INT       Maximum K-mer occurence [%d]\n", max_occ);
         fprintf(fp_help, "    -t INT       Threads [%d]\n", opt.n_threads);
         fprintf(fp_help, "    -g INT       GFA file [%s]\n", opt.gfa_file.c_str());
         fprintf(fp_help, "    -r INT       Read [%s]\n", opt.reads_file.c_str());
