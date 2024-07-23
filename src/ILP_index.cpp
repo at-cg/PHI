@@ -950,7 +950,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         }
 
         // print paths strs
-        std::set<std::string> path_strs_set;
+        std::vector<std::string> path_strs_vec;
         std::set<int32_t> path_vertices;
         int32_t recombination_count = 0;
         for (int i = 0; i < path_strs.size(); i++)
@@ -975,8 +975,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 hap_1 = tokens[1];
                 v = std::stoi(tokens[2]);
                 hap_2 = tokens[3];
-                path_strs_set.insert(hap_1);
-                path_strs_set.insert(hap_2);
+                path_strs_vec.push_back(hap_1);
+                path_strs_vec.push_back(hap_2);
                 path_vertices.insert(u);
                 path_vertices.insert(v);
                 if (debug) std::cerr << "(vtx, hap) => " << "(" << u << "," << hap_1 << ")" << std::endl;
@@ -987,13 +987,13 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 {
                     u = std::stoi(tokens[0]);
                     hap_1 = tokens[1];
-                    path_strs_set.insert(hap_1);
+                    path_strs_vec.push_back(hap_1);
                     path_vertices.insert(u);
                     if (debug) std::cerr << "(vtx, hap) => " << "(" << u << "," << hap_1 << ")" << std::endl;
                 }else {
                     v = std::stoi(tokens[3]);
                     hap_2 = tokens[4];
-                    path_strs_set.insert(hap_2);
+                    path_strs_vec.push_back(hap_2);
                     path_vertices.insert(v);
                     if (debug) std::cerr << "(vtx, hap) => " << "(" << v << "," << hap_2 << ")" << std::endl;
                 }
@@ -1001,15 +1001,11 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             // pritn token[0] -> token[3]
         }
         path_strs.clear();
-        std::vector<std::string> path_strs_vec(path_strs_set.begin(), path_strs_set.end());
-
-        std::cout << "Haplotype Path: " << std::endl;
-
+        
         // pritn path_strs_vec
         std::string prev_hap = path_strs_vec[0];
         for (int i = 0; i < path_strs_vec.size(); i++)
         {
-            std::cout << "->" << path_strs_vec[i];
             std::string curr_hap = path_strs_vec[i];
             if (prev_hap != curr_hap)
             {
@@ -1017,7 +1013,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 prev_hap = curr_hap;
             }
         }
-        std::cout << std::endl;
         std::cout << "Recombination count: " << recombination_count << std::endl;
 
         // generate a set of vertices from the path edges
