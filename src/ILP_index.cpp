@@ -990,6 +990,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     path_strs_vec.push_back(hap_1);
                     path_vertices.insert(u);
                     if (debug) std::cerr << "(vtx, hap) => " << "(" << u << "," << hap_1 << ")" << std::endl;
+                    recombination_count++; // only one count for each w vertex
                 }else {
                     v = std::stoi(tokens[3]);
                     hap_2 = tokens[4];
@@ -1001,18 +1002,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             // pritn token[0] -> token[3]
         }
         path_strs.clear();
-        
-        // pritn path_strs_vec
-        std::string prev_hap = path_strs_vec[0];
-        for (int i = 0; i < path_strs_vec.size(); i++)
-        {
-            std::string curr_hap = path_strs_vec[i];
-            if (prev_hap != curr_hap)
-            {
-                recombination_count++;
-                prev_hap = curr_hap;
-            }
-        }
         std::cout << "Recombination count: " << recombination_count << std::endl;
 
         // generate a set of vertices from the path edges

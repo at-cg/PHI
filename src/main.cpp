@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 	FILE *fp_help = stderr;
     int32_t help = 0;
     mg_verbose = 3;
-    int32_t max_occ = 5;
+    int32_t max_occ = 5000;
 
 	mg_opt_set(0, &ipt, &opt);
 	o = KETOPT_INIT;
