@@ -71,6 +71,7 @@ class ILP_index {
         int32_t bucket_bits;
         int32_t max_occ;
         int32_t recombination;
+        int32_t is_qclp;
 
         // Constructor
         ILP_index(gfa_t *g);	// This is constructor

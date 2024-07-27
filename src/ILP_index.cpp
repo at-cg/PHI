@@ -663,7 +663,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         int32_t c_1 = recombination; // INF no recombination
 
 
-        bool is_ilp = true;
+        bool is_ilp = true; // ILP
+        if(is_qclp) is_ilp = false; // QCLP
         int32_t count_kmer_matches = 0;
 
         if (is_ilp)
