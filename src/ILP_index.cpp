@@ -381,7 +381,8 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
     }
 
     int32_t count_kmers = window + k_mer - 1;
-
+    
+    uint64_t prev_hash = 0;
     for (int32_t i = 0; i <= haplotype.size() - count_kmers; i++) {
         std::string fwd_kmer = std::string(k_mer, 'Z');
         std::string rev_kmer = std::string(k_mer, 'Z');
@@ -414,6 +415,9 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
             start_idx = start_idx_rev;
         }
 
+        if (prev_hash == hash) continue; // Skip the same k-mer
+        prev_hash = hash; // handles first k-mer as well
+
         Anchor anchor;
         anchor.h = hap;
         std::unordered_set<int32_t> set;
@@ -433,7 +437,7 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
         kmer_index.push_back(std::make_pair(hash, anchor));
     }
 
-    bool only_unique = true;
+    bool only_unique = false;
     if (only_unique)
     {
         std::map<uint64_t, Anchor> kmer_index_set;
@@ -455,6 +459,8 @@ std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq)
     std::set<uint64_t> read_hashes;
     int32_t count_kmers = window + k_mer - 1;
     if (read_seq.size() < count_kmers) return read_hashes;
+
+    uint64_t prev_hash = 0;
     for (int32_t i = 0; i <= read_seq.size() - count_kmers; i++) {
         std::string fwd_kmer = std::string(k_mer, 'Z'); // ZZ...Z
         std::string rev_kmer = std::string(k_mer, 'Z');
@@ -480,6 +486,9 @@ std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq)
         if (fwd_kmer > rev_kmer) {
             hash = fnv1a_hash_64(rev_kmer);
         }
+
+        if (prev_hash == hash) continue; // Skip the same k-mer
+        prev_hash = hash; // handles first k-mer as well
 
         read_hashes.insert(hash);
     }
