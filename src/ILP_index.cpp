@@ -433,13 +433,17 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
         kmer_index.push_back(std::make_pair(hash, anchor));
     }
 
-    std::map<uint64_t, Anchor> kmer_index_set;
-    for (auto kmer: kmer_index) {
-        kmer_index_set[kmer.first] = kmer.second;
-    }
-    kmer_index.clear();
-    for (auto kmer: kmer_index_set) {
-        kmer_index.push_back(kmer);
+    bool only_unique = true;
+    if (only_unique)
+    {
+        std::map<uint64_t, Anchor> kmer_index_set;
+        for (auto kmer: kmer_index) {
+            kmer_index_set[kmer.first] = kmer.second;
+        }
+        kmer_index.clear();
+        for (auto kmer: kmer_index_set) {
+            kmer_index.push_back(kmer);
+        }
     }
 
     return kmer_index;
@@ -649,43 +653,98 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
 
         int32_t c_1 = recombination; // INF no recombination
 
-        // Kmer constraints
-        for (int32_t i = 0; i < count_sp_r; i++) {
-            GRBQuadExpr kmer_expr;
-            GRBLinExpr z_expr;
-            int32_t temp = 0;
-            for (int32_t j = 0; j < num_walks; j++) {
-                for (int32_t k = 0; k < Anchor_hits[i][j].size(); k++) {
-                    std::string extra_var = "z_" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k);
-                    GRBVar kmer_expr_var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, extra_var);
-                    if (Anchor_hits[i][j][k].size() - 1 == 0) continue; // ignore matches with only one vertex
-                    int32_t weight = (k_mer - 1) - (Anchor_hits[i][j][k].size() - 1);
-                    kmer_expr += weight * kmer_expr_var; // weight * z_{i,j,k}
-                    for (int32_t l = 1; l < Anchor_hits[i][j][k].size(); l++) {
-                        int32_t u = Anchor_hits[i][j][k][l - 1];
-                        int32_t v = Anchor_hits[i][j][k][l];
-                        std::string var_name = std::to_string(u) + "_" + std::to_string(j) + "_" + std::to_string(v) + "_" + std::to_string(j);
-                        if (vars.find(var_name) == vars.end()) // Variable does not exist
-                        {
-                            vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+
+        bool is_ilp = true;
+        int32_t count_kmer_matches = 0;
+
+        if (is_ilp)
+        {
+            // Kmer constraints
+            for (int32_t i = 0; i < count_sp_r; i++) {
+                // GRBQuadExpr kmer_expr;
+                GRBLinExpr z_expr;
+                int32_t temp = 0;
+                for (int32_t j = 0; j < num_walks; j++) {
+                    for (int32_t k = 0; k < Anchor_hits[i][j].size(); k++) {
+                        GRBLinExpr kmer_expr; // kmer-expression
+                        std::string extra_var = "z_" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k);
+                        GRBVar kmer_expr_var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, extra_var);
+                        if (Anchor_hits[i][j][k].size() - 1 == 0) continue; // ignore matches with only one vertex
+                        // int32_t weight = (k_mer - 1) - (Anchor_hits[i][j][k].size() - 1);
+                        // kmer_expr += weight * kmer_expr_var; // weight * z_{i,j,k}
+                        // kmer_expr += weight; // z_{i,j,k}
+                        for (int32_t l = 1; l < Anchor_hits[i][j][k].size(); l++) {
+                            int32_t u = Anchor_hits[i][j][k][l - 1];
+                            int32_t v = Anchor_hits[i][j][k][l];
+                            std::string var_name = std::to_string(u) + "_" + std::to_string(j) + "_" + std::to_string(v) + "_" + std::to_string(j);
+                            if (vars.find(var_name) == vars.end()) // Variable does not exist
+                            {
+                                vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                            }
+                            // kmer_expr += vars[var_name] * kmer_expr_var;
+                            kmer_expr += vars[var_name];
                         }
-                        kmer_expr += vars[var_name] * kmer_expr_var;
+                        int32_t weight = Anchor_hits[i][j][k].size() - 1;
+                        model.addConstr(kmer_expr >= weight * kmer_expr_var, "Kmer_constraints_" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k));
+                        z_expr += kmer_expr_var;
+                        temp += 1;
+                        count_kmer_matches++;
                     }
-                    z_expr += kmer_expr_var;
-                    temp += 1;
+                }
+                if (temp != 0)
+                {
+                    std::string constraint_name = "Kmer_constraints_" + std::to_string(i);
+                    int32_t kmer_weight = k_mer - 1;
+                    std::string z_var = "z_" + std::to_string(i);
+                    GRBVar z_var_r = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, z_var);
+                    Zvars.push_back(z_var_r);
+                    // model.addQConstr(kmer_expr == kmer_weight * z_var_r, constraint_name);
+                    model.addConstr(z_expr == z_var_r, "Z_constraint_" + std::to_string(i));
                 }
             }
-            if (temp != 0)
-            {
-                std::string constraint_name = "Kmer_constraints_" + std::to_string(i);
-                int32_t kmer_weight = k_mer - 1;
-                std::string z_var = "z_" + std::to_string(i);
-                GRBVar z_var_r = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, z_var);
-                Zvars.push_back(z_var_r);
-                model.addQConstr(kmer_expr == kmer_weight * z_var_r, constraint_name);
-                model.addConstr(z_expr == z_var_r, "Z_constraint_" + std::to_string(i));
+        } else
+        {
+            // Kmer constraints
+            for (int32_t i = 0; i < count_sp_r; i++) {
+                GRBQuadExpr kmer_expr;
+                GRBLinExpr z_expr;
+                int32_t temp = 0;
+                for (int32_t j = 0; j < num_walks; j++) {
+                    for (int32_t k = 0; k < Anchor_hits[i][j].size(); k++) {
+                        std::string extra_var = "z_" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k);
+                        GRBVar kmer_expr_var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, extra_var);
+                        if (Anchor_hits[i][j][k].size() - 1 == 0) continue; // ignore matches with only one vertex
+                        int32_t weight = (k_mer - 1) - (Anchor_hits[i][j][k].size() - 1);
+                        kmer_expr += weight * kmer_expr_var; // weight * z_{i,j,k}
+                        for (int32_t l = 1; l < Anchor_hits[i][j][k].size(); l++) {
+                            int32_t u = Anchor_hits[i][j][k][l - 1];
+                            int32_t v = Anchor_hits[i][j][k][l];
+                            std::string var_name = std::to_string(u) + "_" + std::to_string(j) + "_" + std::to_string(v) + "_" + std::to_string(j);
+                            if (vars.find(var_name) == vars.end()) // Variable does not exist
+                            {
+                                vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                            }
+                            kmer_expr += vars[var_name] * kmer_expr_var;
+                        }
+                        z_expr += kmer_expr_var;
+                        temp += 1;
+                    }
+                }
+                if (temp != 0)
+                {
+                    std::string constraint_name = "Kmer_constraints_" + std::to_string(i);
+                    int32_t kmer_weight = k_mer - 1;
+                    std::string z_var = "z_" + std::to_string(i);
+                    GRBVar z_var_r = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, z_var);
+                    Zvars.push_back(z_var_r);
+                    model.addQConstr(kmer_expr == kmer_weight * z_var_r, constraint_name);
+                    model.addConstr(z_expr == z_var_r, "Z_constraint_" + std::to_string(i));
+                }
             }
         }
+
+        // print count_sp_r_ilp/count_sp_r * 100% kmer matches are in ilp 
+        fprintf(stderr, "[M::%s::%.3f*%.2f] %.2f%% k-mer matches are in ILP\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), (count_kmer_matches * 100.0) / num_kmers);
 
         // clear memory
         for (int32_t i = 0; i < num_walks; i++)
