@@ -31,6 +31,7 @@
 #include <map>
 #include <sstream>
 #include <unordered_set>
+#include <cctype>
 
 // Gurobi
 #include "gurobi_c++.h"

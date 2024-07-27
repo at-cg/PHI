@@ -368,6 +368,9 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
     for (size_t i = 0; i < paths[hap].size(); i++) {
         haplotype += node_seq[paths[hap][i]];
     }
+    // transform lower case letters to upper case
+    std::transform(haplotype.begin(), haplotype.end(), haplotype.begin(), ::toupper);
+
     if (haplotype.size() < window + k_mer - 1) return kmer_index;
 
     int32_t hap_size = haplotype.size();
@@ -455,6 +458,8 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
 
 std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq)
 {
+    // create upper case
+    std::transform(read_seq.begin(), read_seq.end(), read_seq.begin(), ::toupper);
     // Find the minimizers in the read and match with the haplotype and return the anchors
     std::set<uint64_t> read_hashes;
     int32_t count_kmers = window + k_mer - 1;
@@ -528,6 +533,13 @@ std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::v
     local_anchors.clear();
     return anchors;
 }
+
+// void create_upper_case(std::string &str)
+// {
+//     // if any index has a lower case then convert the whole string to upper case
+//     // only a -> A, c -> C, g -> G, t -> T and n -> N
+//     // std::transform(str_.begin(), str_.end(), str_.begin(), ::toupper);
+// }
 
 void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &ip_reads)
 {
