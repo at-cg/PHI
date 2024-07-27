@@ -664,6 +664,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         model.set("Heuristics", "0.50"); // Spent 50% time on heuristics
         model.set("NodefileStart", "0.5"); // 0.5 GB nodefile start
         model.set("Presolve", "2"); // Aggressive presolve to reduce the model size
+        model.set("Method", "3"); // Concurrent method
 
         // create map to store variables
         std::map<std::string, GRBVar> vars;
