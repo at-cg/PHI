@@ -768,7 +768,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         }
 
         // print count_sp_r_ilp/count_sp_r * 100% kmer matches are in ilp 
-        fprintf(stderr, "[M::%s::%.3f*%.2f] %.2f%% k-mer matches are in ILP\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), (count_kmer_matches * 100.0) / num_kmers);
+        fprintf(stderr, "[M::%s::%.3f*%.2f] %.2f%% Anchors are in ILP\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), (count_kmer_matches * 100.0) / num_kmers);
 
         // clear memory
         for (int32_t i = 0; i < num_walks; i++)
