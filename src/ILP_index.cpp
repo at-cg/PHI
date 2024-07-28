@@ -751,6 +751,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                         }
                         z_expr += kmer_expr_var;
                         temp += 1;
+                        count_kmer_matches++;
                     }
                 }
                 if (temp != 0)
@@ -840,7 +841,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 std::set<int32_t> haps_v(haps[v].begin(), haps[v].end());
                 std::set<int32_t> not_common_haps;
                 std::set_difference(haps_u.begin(), haps_u.end(), haps_v.begin(), haps_v.end(), std::inserter(not_common_haps, not_common_haps.begin()));
-                if (not_common_haps.size() != 0) // new vertex does not exist
+                if (not_common_haps.size() != 0) // Recombination vertex type 1 
                 {
                     for (auto j : not_common_haps)
                     {
@@ -859,6 +860,40 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                         std::string var_name_2 = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(i);
                         new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(i));
 
+                        if (vars.find(var_name_2) == vars.end()) // Variable does not exist
+                        {
+                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
+                            vars[var_name_2] = var;
+                        }
+                        vtx_expr += c_1 * vars[var_name_2];
+                    }
+                }
+
+                if (not_common_haps.size() == 0) // Recombination vertex type 2 haps[u] = haps[v] but there exists u -> w -> v and u -> v both
+                {
+                    std::set<int32_t> rev_not_common_haps;
+                    std::set<int32_t> outer_haps;
+                    for (auto w : adj_list[u])
+                    {
+                        if (v != w)
+                        {
+                            rev_not_common_haps.insert(haps[w].begin(), haps[w].end());
+                        }
+                    }
+
+                    for (auto j : rev_not_common_haps)
+                    {
+                        std::string var_name_1 = std::to_string(u) + "_" + std::to_string(j) + "_" + new_vtx;
+                        new_adj[std::to_string(u) + "_" + std::to_string(j)].push_back(new_vtx);
+                        if (vars.find(var_name_1) == vars.end()) // Variable does not exist
+                        {
+                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
+                            vars[var_name_1] = var;
+                        }
+                        vtx_expr += c_1 * vars[var_name_1];
+
+                        std::string var_name_2 = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(j);
+                        new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(j));
                         if (vars.find(var_name_2) == vars.end()) // Variable does not exist
                         {
                             GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
