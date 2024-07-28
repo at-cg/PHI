@@ -646,7 +646,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         }
     }
 
-
     // For backtracking the haplotype
     std::string haplotype;
     // Write an ILP with Gurobi
@@ -711,7 +710,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                         model.addConstr(kmer_expr >= weight * kmer_expr_var, "Kmer_constraints_" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k));
                         z_expr += kmer_expr_var;
                         temp += 1;
-                        count_kmer_matches++;
                     }
                 }
                 if (temp != 0)
@@ -723,6 +721,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     Zvars.push_back(z_var_r);
                     // model.addQConstr(kmer_expr == kmer_weight * z_var_r, constraint_name);
                     model.addConstr(z_expr == z_var_r, "Z_constraint_" + std::to_string(i));
+                    count_kmer_matches++;
                 }
             }
         } else
@@ -751,7 +750,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                         }
                         z_expr += kmer_expr_var;
                         temp += 1;
-                        count_kmer_matches++;
                     }
                 }
                 if (temp != 0)
@@ -763,12 +761,13 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     Zvars.push_back(z_var_r);
                     model.addQConstr(kmer_expr == kmer_weight * z_var_r, constraint_name);
                     model.addConstr(z_expr == z_var_r, "Z_constraint_" + std::to_string(i));
+                    count_kmer_matches++;
                 }
             }
         }
 
         // print count_sp_r_ilp/count_sp_r * 100% kmer matches are in ilp 
-        fprintf(stderr, "[M::%s::%.3f*%.2f] %.2f%% Anchors are in ILP\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), (count_kmer_matches * 100.0) / num_kmers);
+        fprintf(stderr, "[M::%s::%.3f*%.2f] %.2f%% Kmers are in ILP\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), (count_kmer_matches * 100.0) / count_sp_r);
 
         // clear memory
         for (int32_t i = 0; i < num_walks; i++)
