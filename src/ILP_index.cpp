@@ -868,10 +868,9 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     }
                 }
 
-                if (not_common_haps.size() == 0) // Recombination vertex type 2 haps[u] = haps[v] but there exists u -> w -> v and u -> v both
+                if (not_common_haps.size() == 0 && haps[u].size() == num_walks && adj_list[u].size() > 1) // Recombination vertex type 2 haps[u] = haps[v] but there exists u -> w -> v and u -> v both
                 {
                     std::set<int32_t> rev_not_common_haps;
-                    std::set<int32_t> outer_haps;
                     for (auto w : adj_list[u])
                     {
                         if (v != w)
@@ -1141,7 +1140,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             }
             if (!exist_edge)
             {
-                fprintf(stderr, "Error: No edge between %d and %d\n", u, v);
+                fprintf(stderr, "Error: No edge between %d and %d\n", u , v);
                 exit(1);
             }
             if (debug) std::cout << "(" << u << "," << v << ")" << "->";
