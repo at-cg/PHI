@@ -4,7 +4,7 @@
 
 ## <a name="started"></a>Getting Started
 
-### Get Minichain
+### Get AlphaASM
 
 ```bash
 git clone https://github.com/gsc74/AlphaASM
