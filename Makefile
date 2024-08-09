@@ -1,5 +1,5 @@
 CXX = g++ -std=c++2a	
-CXXFLAGS = -ggdb3 -fopenmp -pthread -march=native -mtune=native -O3 -lgurobi_c++ -lgurobi110 -lm -lz -lpthread -ldl
+CXXFLAGS = -fopenmp -pthread -march=native -mtune=native -O3 -lgurobi_c++ -lgurobi110 -lm -lz -lpthread -ldl
 GUROBI_HOME = /home/ghanshyam/opt/gurobi1101/linux64
 INLCLUDES = -I$(GUROBI_HOME)/include
 LIBS = -L$(GUROBI_HOME)/lib

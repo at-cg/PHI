@@ -624,6 +624,48 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         } 
     }
 
+    std::vector<std::vector<std::vector<std::vector<int32_t>>>> Anchor_hits_filt(Sp_R.size(), std::vector<std::vector<std::vector<int32_t>>>(num_walks));   
+    #pragma omp parallel for num_threads(num_threads)
+    for (int32_t r = 0; r < Sp_R.size(); r++)
+    {
+        std::map<std::string, std::pair<int32_t, std::pair<std::vector<int32_t>, std::vector<int32_t>>>> Anchor_hits_map;
+        for (int32_t h = 0; h < num_walks; h++)
+        {
+            for (int32_t k = 0; k < Anchor_hits[r][h].size(); k++)
+            {
+                std::string anchor_str = "";
+                for (auto v: Anchor_hits[r][h][k])
+                {
+                    anchor_str += std::to_string(v) + "_";
+                }
+                if (Anchor_hits_map.find(anchor_str) == Anchor_hits_map.end())
+                {
+                    Anchor_hits_map[anchor_str].first = 1;
+                    Anchor_hits_map[anchor_str].second.first = Anchor_hits[r][h][k];
+                    Anchor_hits_map[anchor_str].second.second.push_back(h);
+                }else
+                {
+                    Anchor_hits_map[anchor_str].first++;
+                    Anchor_hits_map[anchor_str].second.second.push_back(h);
+                }
+            }
+        }
+        // remove all the anchors with only one occurence
+        for (auto &anchor: Anchor_hits_map)
+        {
+            if (anchor.second.first >= threshold * num_walks) continue;
+            for (auto h : anchor.second.second.second)
+            {
+                Anchor_hits_filt[r][h].push_back(anchor.second.second.first);
+            }
+        }
+        Anchor_hits_map.clear();
+    }
+
+    Anchor_hits.clear(); // clear the memory
+    Anchor_hits = Anchor_hits_filt;
+    Anchor_hits_filt.clear(); // clear the memory
+
     // find number of kmers
     for (int32_t h = 0; h < num_walks; h++)
     {
@@ -637,7 +679,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     }
     Sp_R.clear();
 
-    fprintf(stderr, "[M::%s::%.3f*%.2f] %d unique k-mers matches found\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), num_kmers);
+    // fprintf(stderr, "[M::%s::%.3f*%.2f] %d Anchors found\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), num_kmers);
+    fprintf(stderr, "[M::%s::%.3f*%.2f] %d Anchors found with %.2f threshold\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), num_kmers, threshold);
 
     std::vector<std::vector<int32_t>> in_nodes(n_vtx);
     for (int32_t i = 0; i < n_vtx; i++)
@@ -670,12 +713,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         // create map to store variables
         std::map<std::string, GRBVar> vars;
         std::vector<GRBVar> Zvars;
-
-        // print started ILP model
-        fprintf(stderr, "[M::%s::%.3f*%.2f] ILP model started\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
-
         int32_t c_1 = recombination; // INF no recombination
-
 
         bool is_ilp = true; // ILP
         if(is_qclp) is_ilp = false; // QCLP
@@ -683,6 +721,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
 
         if (is_ilp)
         {
+            fprintf(stderr, "[M::%s::%.3f*%.2f] ILP model started\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
             // Kmer constraints
             for (int32_t i = 0; i < count_sp_r; i++) {
                 // GRBQuadExpr kmer_expr;
@@ -728,6 +767,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             }
         } else
         {
+            fprintf(stderr, "[M::%s::%.3f*%.2f] QCLP model started\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
             // Kmer constraints
             for (int32_t i = 0; i < count_sp_r; i++) {
                 GRBQuadExpr kmer_expr;
@@ -785,7 +825,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         {
             // Create the objective function
             GRBLinExpr obj;
-
             GRBLinExpr start_expr;
             GRBLinExpr end_expr;
             for (int32_t i = 0; i < num_walks; i++) {
@@ -863,8 +902,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
 
             obj =  vtx_expr + z_expr;
             model.setObjective(obj, GRB_MINIMIZE);
-
-            fprintf(stderr, "[M::%s::%.3f*%.2f] Objective function added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
             // paths based flow constraints
             for (int32_t i = 0; i < num_walks; i++)
@@ -976,6 +1013,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             // clear vars
             vars.clear();
             Zvars.clear();
+            fprintf(stderr, "[M::%s::%.3f*%.2f] Naive expanded graph constructed\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
         }else
         {
             // Create the objective function
@@ -1028,76 +1066,36 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             }
 
             std::map<std::string, bool> visited_vtx;
-            // with recombination
+            
+            // with recombination (This allows flow from u_0_w_u_v -> w_u_v_v_0 type edges but with penality, so no recmbination penalty vertices will be chosen)
+            // This is to make sure that the expanded graph remains simple to debug
             for (int32_t u = 0; u < adj_list.size(); u++)
             {
                 for (auto v : adj_list[u])
                 {
                     std::string new_vtx = "w_" + std::to_string(u) + "_" + std::to_string(v);
 
-                    std::set<int32_t> haps_u(haps[u].begin(), haps[u].end());
-                    std::set<int32_t> haps_v(haps[v].begin(), haps[v].end());
-                    std::set<int32_t> not_common_haps;
-                    std::set_difference(haps_u.begin(), haps_u.end(), haps_v.begin(), haps_v.end(), std::inserter(not_common_haps, not_common_haps.begin()));
-                    if (not_common_haps.size() != 0) // Recombination vertex type 1 
+                    for (auto i : haps[u])
                     {
-                        for (auto j : not_common_haps)
+                        std::string var_in = std::to_string(u) + "_" + std::to_string(i) + "_" + new_vtx;
+                        new_adj[std::to_string(u) + "_" + std::to_string(i)].push_back(new_vtx);
+                        if (vars.find(var_in) == vars.end()) // Variable does not exist
                         {
-                            std::string var_name_1 = std::to_string(u) + "_" + std::to_string(j) + "_" + new_vtx;
-                            new_adj[std::to_string(u) + "_" + std::to_string(j)].push_back(new_vtx);
-                            if (vars.find(var_name_1) == vars.end()) // Variable does not exist
-                            {
-                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
-                                vars[var_name_1] = var;
-                            }
-                            vtx_expr += c_1 * vars[var_name_1];
-                        }
-
-                        for (auto i : haps[v])
-                        {
-                            std::string var_name_2 = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(i);
-                            new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(i));
-
-                            if (vars.find(var_name_2) == vars.end()) // Variable does not exist
-                            {
-                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
-                                vars[var_name_2] = var;
-                            }
-                            vtx_expr += c_1 * vars[var_name_2];
+                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_in);
+                            vars[var_in] = var;
+                            vtx_expr += c_1 * var;
                         }
                     }
-
-                    if (not_common_haps.size() == 0 && haps[u].size() == num_walks && adj_list[u].size() > 1) // Recombination vertex type 2 haps[u] = haps[v] but there exists u -> w -> v and u -> v both
+                    for (auto j : haps[v])
                     {
-                        std::set<int32_t> rev_not_common_haps;
-                        for (auto w : adj_list[u])
+                        std::string var_out = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(j);
+                        new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(j));
+                        if (vars.find(var_out) == vars.end()) // Variable does not exist
                         {
-                            if (v != w)
-                            {
-                                rev_not_common_haps.insert(haps[w].begin(), haps[w].end());
-                            }
-                        }
-
-                        for (auto j : rev_not_common_haps)
-                        {
-                            std::string var_name_1 = std::to_string(u) + "_" + std::to_string(j) + "_" + new_vtx;
-                            new_adj[std::to_string(u) + "_" + std::to_string(j)].push_back(new_vtx);
-                            if (vars.find(var_name_1) == vars.end()) // Variable does not exist
-                            {
-                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
-                                vars[var_name_1] = var;
-                            }
-                            vtx_expr += c_1 * vars[var_name_1];
-
-                            std::string var_name_2 = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(j);
-                            new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(j));
-                            if (vars.find(var_name_2) == vars.end()) // Variable does not exist
-                            {
-                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
-                                vars[var_name_2] = var;
-                            }
-                            vtx_expr += c_1 * vars[var_name_2];
-                        }
+                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_out);
+                            vars[var_out] = var;
+                            vtx_expr += c_1 * var;
+                        }  
                     }
                 }
             }
@@ -1122,8 +1120,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     in_nodes_new[u].push_back(v.first);
                 }
             }
-
-            fprintf(stderr, "[M::%s::%.3f*%.2f] Objective function added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
             // paths based flow constraints
             for (int32_t i = 0; i < num_walks; i++)
@@ -1217,10 +1213,10 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             vars.clear();
             new_adj.clear();
             in_nodes_new.clear();
-        }
-        
 
-        fprintf(stderr, "[M::%s::%.3f*%.2f] Flow conservation constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
+            fprintf(stderr, "[M::%s::%.3f*%.2f] Optimized expanded graph constructed\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
+        }
+
 
         // Check the default optimality tolerance
         double defaultTol = model.get(GRB_DoubleParam_OptimalityTol);
@@ -1320,14 +1316,18 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     path_vertices.insert(u);
                     if (debug) std::cerr << "(vtx, hap) => " << "(" << u << "," << hap_1 << ")" << std::endl;
                     recombination_count++; // only one count for each w vertex
-                    recombination_map.push_back(std::pair<int32_t, int32_t>(std::stoi(tokens[0]), std::stoi(tokens[1])));
+                    int32_t u_int = std::stoi(tokens[0]);
+                    int32_t hap_int = std::stoi(tokens[1]);
+                    recombination_map.push_back({u_int, hap_int});
                 }else {
                     v = std::stoi(tokens[3]);
                     hap_2 = tokens[4];
                     path_strs_vec.push_back(hap_2);
                     path_vertices.insert(v);
                     if (debug) std::cerr << "(vtx, hap) => " << "(" << v << "," << hap_2 << ")" << std::endl;
-                    recombination_map.push_back(std::pair<int32_t, int32_t>(std::stoi(tokens[3]), std::stoi(tokens[4])));
+                    int32_t v_int = std::stoi(tokens[3]);
+                    int32_t hap_int = std::stoi(tokens[4]);
+                    recombination_map.push_back({v_int, hap_int});
                 }
             }
             // pritn token[0] -> token[3]
@@ -1342,10 +1342,10 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             std::string old_hap = std::to_string(recombination_map[0].second);
             for (int i = 1; i < recombination_map.size(); i++)
             {
-                if (old_hap != std::to_string(recombination_map[i].first))
+                if (old_hap != std::to_string(recombination_map[i].second))
                 {
-                    recombined_haps.push_back(std::to_string(recombination_map[i].first));
-                    old_hap = std::to_string(recombination_map[i].first);
+                    recombined_haps.push_back(std::to_string(recombination_map[i].second));
+                    old_hap = std::to_string(recombination_map[i].second);
                 }
             }
         }
