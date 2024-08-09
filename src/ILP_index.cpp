@@ -102,6 +102,8 @@ void::ILP_index::read_gfa()
     // Fill the paths
     for (size_t w = 0; w < g->n_walk; w++)
     {
+        std::string walk_name = std::string(g->walk[w].sample) + "." + std::to_string(g->walk[w].hap);
+        hap_id2name.push_back(walk_name);
         int32_t idx = 0;
         for (size_t n = 0; n < g->walk[w].n_v; n++)
         {
@@ -779,247 +781,446 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
 
         fprintf(stderr, "[M::%s::%.3f*%.2f] Kmer constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
-        // Create the objective function
-        GRBLinExpr obj;
-
-        GRBLinExpr start_expr;
-        GRBLinExpr end_expr;
-        for (int32_t i = 0; i < num_walks; i++) {
-            int32_t u_start = paths[i][0];
-            std::string var_name_start = "s_" + std::to_string(u_start) + "_" + std::to_string(i);
-            GRBVar var_start = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_start);
-            vars[var_name_start] = var_start;
-            start_expr += var_start;
-
-            int32_t u_end = paths[i].back();
-            std::string var_name_end = std::to_string(u_end) + "_" + std::to_string(i) + "_e";
-            GRBVar var_end = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_end);
-            vars[var_name_end] = var_end;
-            end_expr += var_end;
-        }
-
-        // set start_expr <= 1 and end_expr <= 1
-        model.addConstr(start_expr == 1, "Start_expr");
-        model.addConstr(end_expr == 1, "End_expr");
-
-        // Add vertex constraints from paths
-        GRBLinExpr vtx_expr;
-        // GRBLinExpr recomb_expr;
-
-        std::map<std::string, std::vector<std::string>> new_adj;
-
-        // w/o recombination
-        for (int32_t i = 0; i < num_walks; i++)
+        if (is_naive_exp)
         {
-            for (int32_t idx = 0; idx < paths[i].size() - 1; idx++)
-            {
-                int32_t u = paths[i][idx];
-                int32_t v = paths[i][idx + 1];
-                std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
-                
-                // New adjacency list
-                new_adj[std::to_string(u) + "_" + std::to_string(i)].push_back(std::to_string(v) + "_" + std::to_string(i));
-                
-                if (vars.find(var_name) == vars.end()) { // Variable does not exist
-                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
-                    vars[var_name] = var;
-                    vtx_expr += 0 * var; // no need without recombination
-                }
+            // Create the objective function
+            GRBLinExpr obj;
+
+            GRBLinExpr start_expr;
+            GRBLinExpr end_expr;
+            for (int32_t i = 0; i < num_walks; i++) {
+                int32_t u_start = paths[i][0];
+                std::string var_name_start = "s_" + std::to_string(u_start) + "_" + std::to_string(i);
+                GRBVar var_start = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_start);
+                vars[var_name_start] = var_start;
+                start_expr += var_start;
+
+                int32_t u_end = paths[i][paths[i].size() - 1];
+                std::string var_name_end = std::to_string(u_end) + "_" + std::to_string(i) + "_e";
+                GRBVar var_end = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_end);
+                vars[var_name_end] = var_end;
+                end_expr += var_end;
             }
-        }
 
-        std::map<std::string, bool> visited_vtx;
-        // with recombination
-        for (int32_t u = 0; u < adj_list.size(); u++)
-        {
-            for (auto v : adj_list[u])
+            // set start_expr <= 1 and end_expr <= 1
+            model.addConstr(start_expr == 1, "Start_expr");
+            model.addConstr(end_expr == 1, "End_expr");
+
+            // Add vertex constraints from paths
+            GRBLinExpr vtx_expr;
+            // GRBLinExpr recomb_expr;
+
+            // w/o recombination
+            for (int32_t i = 0; i < num_walks; i++)
             {
-                std::string new_vtx = "w_" + std::to_string(u) + "_" + std::to_string(v);
-
-                std::set<int32_t> haps_u(haps[u].begin(), haps[u].end());
-                std::set<int32_t> haps_v(haps[v].begin(), haps[v].end());
-                std::set<int32_t> not_common_haps;
-                std::set_difference(haps_u.begin(), haps_u.end(), haps_v.begin(), haps_v.end(), std::inserter(not_common_haps, not_common_haps.begin()));
-                if (not_common_haps.size() != 0) // Recombination vertex type 1 
+                for (int32_t idx = 0; idx < paths[i].size() - 1; idx++)
                 {
-                    for (auto j : not_common_haps)
-                    {
-                        std::string var_name_1 = std::to_string(u) + "_" + std::to_string(j) + "_" + new_vtx;
-                        new_adj[std::to_string(u) + "_" + std::to_string(j)].push_back(new_vtx);
-                        if (vars.find(var_name_1) == vars.end()) // Variable does not exist
-                        {
-                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
-                            vars[var_name_1] = var;
-                        }
-                        vtx_expr += c_1 * vars[var_name_1];
-                    }
-
-                    for (auto i : haps[v])
-                    {
-                        std::string var_name_2 = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(i);
-                        new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(i));
-
-                        if (vars.find(var_name_2) == vars.end()) // Variable does not exist
-                        {
-                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
-                            vars[var_name_2] = var;
-                        }
-                        vtx_expr += c_1 * vars[var_name_2];
-                    }
-                }
-
-                if (not_common_haps.size() == 0 && haps[u].size() == num_walks && adj_list[u].size() > 1) // Recombination vertex type 2 haps[u] = haps[v] but there exists u -> w -> v and u -> v both
-                {
-                    std::set<int32_t> rev_not_common_haps;
-                    for (auto w : adj_list[u])
-                    {
-                        if (v != w)
-                        {
-                            rev_not_common_haps.insert(haps[w].begin(), haps[w].end());
-                        }
-                    }
-
-                    for (auto j : rev_not_common_haps)
-                    {
-                        std::string var_name_1 = std::to_string(u) + "_" + std::to_string(j) + "_" + new_vtx;
-                        new_adj[std::to_string(u) + "_" + std::to_string(j)].push_back(new_vtx);
-                        if (vars.find(var_name_1) == vars.end()) // Variable does not exist
-                        {
-                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
-                            vars[var_name_1] = var;
-                        }
-                        vtx_expr += c_1 * vars[var_name_1];
-
-                        std::string var_name_2 = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(j);
-                        new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(j));
-                        if (vars.find(var_name_2) == vars.end()) // Variable does not exist
-                        {
-                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
-                            vars[var_name_2] = var;
-                        }
-                        vtx_expr += c_1 * vars[var_name_2];
+                    int32_t u = paths[i][idx];
+                    int32_t v = paths[i][idx + 1];
+                    std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
+                    if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        vars[var_name] = var;
+                        vtx_expr += 0 * var; // no need without recombination
                     }
                 }
             }
-        }
-        // int32_t max_recomb = 100;
-        // model.addConstr(recomb_expr <= max_recomb, "Recombination_constraint_less");
-        // model.addConstr(recomb_expr >= max_recomb, "Recombination_constraint_greater");
 
-        // add (1-z_{i}) constraints
-        GRBLinExpr z_expr;
-        for (int32_t i = 0; i < Zvars.size(); i++) {
-            z_expr += (1 - Zvars[i]);
-        }
-
-        obj =  vtx_expr + z_expr;
-
-        // Create the reverse adjacency list
-        std::map<std::string, std::vector<std::string>> in_nodes_new;
-        for (auto v: new_adj) {
-            for (auto u: v.second) {
-                in_nodes_new[u].push_back(v.first);
-            }
-        }
-
-        fprintf(stderr, "[M::%s::%.3f*%.2f] Objective function added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
-
-        // paths based flow constraints
-        for (int32_t i = 0; i < num_walks; i++)
-        {
-            for (int32_t idx = 0; idx < paths[i].size(); idx++)
+            // with recombination
+            for (int32_t i = 0; i < num_walks; i++)
             {
-                if (idx == 0 || idx == paths[i].size() - 1) continue; // skip source and sink nodes
-                GRBLinExpr in_expr;
-                GRBLinExpr out_expr;
-
-                int32_t v = paths[i][idx];
-                std::string vtx = std::to_string(v) + "_" + std::to_string(i);
-                for (auto u: in_nodes_new[vtx]) {
-                    std::string edge = u + "_" + vtx;
-                    in_expr += vars[edge];
-                }
-                for (auto u: new_adj[vtx]) {
-                    std::string edge = vtx + "_" + u;
-                    out_expr += vars[edge];
-                }
-
-                std::string constraint_name = "Flow_conservation_" + std::to_string(v) + "_" + std::to_string(i);
-                model.addConstr(in_expr == out_expr, constraint_name);
-            }
-        }
-
-        for (int32_t u = 0; u < n_vtx; u++)
-        {
-            for (auto v : adj_list[u])
-            {
-                GRBLinExpr in_expr;
-                GRBLinExpr out_expr;
-                // for w_u_v vertices
-                std::string w_vtx = "w_" + std::to_string(u) + "_" + std::to_string(v);
-                if (new_adj.find(w_vtx) != new_adj.end()) // w_vtx exists
+                for (int32_t idx = 0; idx < paths[i].size() - 1; idx++)
                 {
-                    for (auto u: new_adj[w_vtx]) {
-                        std::string edge = w_vtx + "_" + u;
-                        out_expr += vars[edge];
+                    int32_t u = paths[i][idx];
+                    for (auto v : adj_list[u])
+                    {
+                        for (auto j : haps[v])
+                        {
+                            if (i != j)
+                            {
+                                std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
+                                if (vars.find(var_name) == vars.end()) // Variable does not exist
+                                {
+                                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                    vars[var_name] = var;
+                                    vtx_expr += c_1 * var;
+                                    // recomb_expr += var;
+                                }
+                            }
+                        }
                     }
-                    for (auto u: in_nodes_new[w_vtx]) {
-                        std::string edge = u + "_" + w_vtx;
-                        in_expr += vars[edge];
+                }
+            }
+            // int32_t max_recomb = 100;
+            // model.addConstr(recomb_expr <= max_recomb, "Recombination_constraint_less");
+            // model.addConstr(recomb_expr >= max_recomb, "Recombination_constraint_greater");
+
+            // add (1-z_{i}) constraints
+            GRBLinExpr z_expr;
+            for (int32_t i = 0; i < Zvars.size(); i++) {
+                z_expr += (1 - Zvars[i]);
+            }
+
+            obj =  vtx_expr + z_expr;
+            model.setObjective(obj, GRB_MINIMIZE);
+
+            fprintf(stderr, "[M::%s::%.3f*%.2f] Objective function added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
+
+            // paths based flow constraints
+            for (int32_t i = 0; i < num_walks; i++)
+            {
+                for (int32_t idx = 0; idx < paths[i].size(); idx++)
+                {
+                    if (idx == 0 || idx == paths[i].size() - 1) continue; // skip source and sink nodes
+                    GRBLinExpr in_expr;
+                    GRBLinExpr out_expr;
+                    int32_t v = paths[i][idx];
+                    int32_t v_in = paths[i][idx - 1];
+                    int32_t v_out = paths[i][idx + 1];
+                    std::string var_name = std::to_string(v_in) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
+                    if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        vars[var_name] = var;
                     }
-                    std::string constraint_name = "Flow_conservation_" + w_vtx;
+                    in_expr += vars[var_name];
+
+                    var_name = std::to_string(v) + "_" + std::to_string(i) + "_" + std::to_string(v_out) + "_" + std::to_string(i);
+                    if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        vars[var_name] = var;
+                    }
+                    out_expr += vars[var_name];
+                    
+                    // In expression
+                    for (auto u : in_nodes[v])
+                    {
+                        for (auto j : haps[u])
+                        {
+                            if (i != j)
+                            {
+                                var_name = std::to_string(u) + "_" + std::to_string(j) + "_" + std::to_string(v) + "_" + std::to_string(i);
+                                if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                    vars[var_name] = var;
+                                }
+                                in_expr += vars[var_name];
+                            }
+                        }
+                    }
+
+                    // Out expression
+                    for (auto u : adj_list[v])
+                    {
+                        for (auto j : haps[u])
+                        {
+                            if (i != j)
+                            {
+                                var_name = std::to_string(v) + "_" + std::to_string(i) + "_" + std::to_string(u) + "_" + std::to_string(j);
+                                if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                    vars[var_name] = var;
+                                }
+                                out_expr += vars[var_name];
+                            }
+                        }
+                    }
+                    std::string constraint_name = "Flow_conservation_" + std::to_string(v) + "_" + std::to_string(i);
                     model.addConstr(in_expr == out_expr, constraint_name);
                 }
             }
-        }
+            
 
-        // // print new adj list
-        // for (auto v: new_adj) {
-        //     std::cout << v.first << " -> ";
-        //     for (auto u: v.second) {
-        //         std::cout << u << " ";
-        //     }
-        //     std::cout << std::endl;
-        // }
-        // exit(0);
-
-        // Flow constraints for source nodes
-        for (int32_t i = 0; i < num_walks; i++) {
-            int32_t u = paths[i][0];
-            GRBLinExpr s_expr;
-            s_expr += vars["s_" + std::to_string(u) + "_" + std::to_string(i)];
-            std::string vtx = std::to_string(u) + "_" + std::to_string(i);
-            for (auto v: new_adj[vtx]) {
-                std::string edge = vtx + "_" + v;
-                s_expr -= vars[edge];
+            // Flow constraints for source nodes
+            for (int32_t i = 0; i < num_walks; i++) {
+                int32_t u = paths[i][0];
+                GRBLinExpr s_expr;
+                s_expr += vars["s_" + std::to_string(u) + "_" + std::to_string(i)];
+                for (auto v: adj_list[u]) {
+                    for (auto j: haps[v]) {
+                        std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
+                        if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                            vars[var_name] = var;
+                        }
+                        s_expr -= vars[var_name];
+                    }
+                }
+                std::string constraint_name = "Source_conservation_" + std::to_string(u) + "_" + std::to_string(i);
+                model.addConstr(s_expr == 0, constraint_name);
             }
-            std::string constraint_name = "Source_conservation_" + std::to_string(u) + "_" + std::to_string(i);
-            model.addConstr(s_expr == 0, constraint_name);
-        }
 
-        // Flow constraints for sink nodes
-        for (int32_t i = 0; i < num_walks; i++) {
-            int32_t u = paths[i].back();
-            GRBLinExpr e_expr;
-            std::string vtx = std::to_string(u) + "_" + std::to_string(i);
-            for (auto v: in_nodes_new[vtx]) {
-                std::string edge = v + "_" + vtx;
-                e_expr += vars[edge];
+            // Flow constraints for sink nodes
+            for (int32_t i = 0; i < num_walks; i++) {
+                int32_t u = paths[i][paths[i].size() - 1];
+                GRBLinExpr e_expr;
+                for (auto v: in_nodes[u]) {
+                    for (auto j: haps[v]) {
+                        std::string var_name = std::to_string(v) + "_" + std::to_string(j) + "_" + std::to_string(u) + "_" + std::to_string(i);
+                        if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                            vars[var_name] = var;
+                        }
+                        e_expr += vars[var_name];
+                    }
+                }
+                std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_e";
+                if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                    vars[var_name] = var;
+                }
+                e_expr += -1 * vars[var_name];
+                std::string constraint_name = "Sink_conservation_" + std::to_string(u) + "_" + std::to_string(i);
+                model.addConstr(e_expr == 0, constraint_name);
             }
-            std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_e";
-            e_expr += -1 * vars[var_name];
-            std::string constraint_name = "Sink_conservation_" + std::to_string(u) + "_" + std::to_string(i);
-            model.addConstr(e_expr == 0, constraint_name);
-        }
 
-        // clear vars
-        vars.clear();
-        new_adj.clear();
-        in_nodes_new.clear();
+            // clear vars
+            vars.clear();
+            Zvars.clear();
+        }else
+        {
+            // Create the objective function
+            GRBLinExpr obj;
+
+            GRBLinExpr start_expr;
+            GRBLinExpr end_expr;
+            for (int32_t i = 0; i < num_walks; i++) {
+                int32_t u_start = paths[i][0];
+                std::string var_name_start = "s_" + std::to_string(u_start) + "_" + std::to_string(i);
+                GRBVar var_start = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_start);
+                vars[var_name_start] = var_start;
+                start_expr += var_start;
+
+                int32_t u_end = paths[i].back();
+                std::string var_name_end = std::to_string(u_end) + "_" + std::to_string(i) + "_e";
+                GRBVar var_end = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_end);
+                vars[var_name_end] = var_end;
+                end_expr += var_end;
+            }
+
+            // set start_expr <= 1 and end_expr <= 1
+            model.addConstr(start_expr == 1, "Start_expr");
+            model.addConstr(end_expr == 1, "End_expr");
+
+            // Add vertex constraints from paths
+            GRBLinExpr vtx_expr;
+            // GRBLinExpr recomb_expr;
+
+            std::map<std::string, std::vector<std::string>> new_adj;
+
+            // w/o recombination
+            for (int32_t i = 0; i < num_walks; i++)
+            {
+                for (int32_t idx = 0; idx < paths[i].size() - 1; idx++)
+                {
+                    int32_t u = paths[i][idx];
+                    int32_t v = paths[i][idx + 1];
+                    std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
+                    
+                    // New adjacency list
+                    new_adj[std::to_string(u) + "_" + std::to_string(i)].push_back(std::to_string(v) + "_" + std::to_string(i));
+                    
+                    if (vars.find(var_name) == vars.end()) { // Variable does not exist
+                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        vars[var_name] = var;
+                        vtx_expr += 0 * var; // no need without recombination
+                    }
+                }
+            }
+
+            std::map<std::string, bool> visited_vtx;
+            // with recombination
+            for (int32_t u = 0; u < adj_list.size(); u++)
+            {
+                for (auto v : adj_list[u])
+                {
+                    std::string new_vtx = "w_" + std::to_string(u) + "_" + std::to_string(v);
+
+                    std::set<int32_t> haps_u(haps[u].begin(), haps[u].end());
+                    std::set<int32_t> haps_v(haps[v].begin(), haps[v].end());
+                    std::set<int32_t> not_common_haps;
+                    std::set_difference(haps_u.begin(), haps_u.end(), haps_v.begin(), haps_v.end(), std::inserter(not_common_haps, not_common_haps.begin()));
+                    if (not_common_haps.size() != 0) // Recombination vertex type 1 
+                    {
+                        for (auto j : not_common_haps)
+                        {
+                            std::string var_name_1 = std::to_string(u) + "_" + std::to_string(j) + "_" + new_vtx;
+                            new_adj[std::to_string(u) + "_" + std::to_string(j)].push_back(new_vtx);
+                            if (vars.find(var_name_1) == vars.end()) // Variable does not exist
+                            {
+                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
+                                vars[var_name_1] = var;
+                            }
+                            vtx_expr += c_1 * vars[var_name_1];
+                        }
+
+                        for (auto i : haps[v])
+                        {
+                            std::string var_name_2 = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(i);
+                            new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(i));
+
+                            if (vars.find(var_name_2) == vars.end()) // Variable does not exist
+                            {
+                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
+                                vars[var_name_2] = var;
+                            }
+                            vtx_expr += c_1 * vars[var_name_2];
+                        }
+                    }
+
+                    if (not_common_haps.size() == 0 && haps[u].size() == num_walks && adj_list[u].size() > 1) // Recombination vertex type 2 haps[u] = haps[v] but there exists u -> w -> v and u -> v both
+                    {
+                        std::set<int32_t> rev_not_common_haps;
+                        for (auto w : adj_list[u])
+                        {
+                            if (v != w)
+                            {
+                                rev_not_common_haps.insert(haps[w].begin(), haps[w].end());
+                            }
+                        }
+
+                        for (auto j : rev_not_common_haps)
+                        {
+                            std::string var_name_1 = std::to_string(u) + "_" + std::to_string(j) + "_" + new_vtx;
+                            new_adj[std::to_string(u) + "_" + std::to_string(j)].push_back(new_vtx);
+                            if (vars.find(var_name_1) == vars.end()) // Variable does not exist
+                            {
+                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
+                                vars[var_name_1] = var;
+                            }
+                            vtx_expr += c_1 * vars[var_name_1];
+
+                            std::string var_name_2 = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(j);
+                            new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(j));
+                            if (vars.find(var_name_2) == vars.end()) // Variable does not exist
+                            {
+                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
+                                vars[var_name_2] = var;
+                            }
+                            vtx_expr += c_1 * vars[var_name_2];
+                        }
+                    }
+                }
+            }
+            // int32_t max_recomb = 100;
+            // model.addConstr(recomb_expr <= max_recomb, "Recombination_constraint_less");
+            // model.addConstr(recomb_expr >= max_recomb, "Recombination_constraint_greater");
+
+            // add (1-z_{i}) constraints
+            GRBLinExpr z_expr;
+            for (int32_t i = 0; i < Zvars.size(); i++) {
+                z_expr += (1 - Zvars[i]);
+            }
+
+            obj =  vtx_expr + z_expr;
+
+            model.setObjective(obj, GRB_MINIMIZE);
+
+            // Create the reverse adjacency list
+            std::map<std::string, std::vector<std::string>> in_nodes_new;
+            for (auto v: new_adj) {
+                for (auto u: v.second) {
+                    in_nodes_new[u].push_back(v.first);
+                }
+            }
+
+            fprintf(stderr, "[M::%s::%.3f*%.2f] Objective function added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
+
+            // paths based flow constraints
+            for (int32_t i = 0; i < num_walks; i++)
+            {
+                for (int32_t idx = 0; idx < paths[i].size(); idx++)
+                {
+                    if (idx == 0 || idx == paths[i].size() - 1) continue; // skip source and sink nodes
+                    GRBLinExpr in_expr;
+                    GRBLinExpr out_expr;
+
+                    int32_t v = paths[i][idx];
+                    std::string vtx = std::to_string(v) + "_" + std::to_string(i);
+                    for (auto u: in_nodes_new[vtx]) {
+                        std::string edge = u + "_" + vtx;
+                        in_expr += vars[edge];
+                    }
+                    for (auto u: new_adj[vtx]) {
+                        std::string edge = vtx + "_" + u;
+                        out_expr += vars[edge];
+                    }
+
+                    std::string constraint_name = "Flow_conservation_" + std::to_string(v) + "_" + std::to_string(i);
+                    model.addConstr(in_expr == out_expr, constraint_name);
+                }
+            }
+
+            for (int32_t u = 0; u < n_vtx; u++)
+            {
+                for (auto v : adj_list[u])
+                {
+                    GRBLinExpr in_expr;
+                    GRBLinExpr out_expr;
+                    // for w_u_v vertices
+                    std::string w_vtx = "w_" + std::to_string(u) + "_" + std::to_string(v);
+                    if (new_adj.find(w_vtx) != new_adj.end()) // w_vtx exists
+                    {
+                        for (auto u: new_adj[w_vtx]) {
+                            std::string edge = w_vtx + "_" + u;
+                            out_expr += vars[edge];
+                        }
+                        for (auto u: in_nodes_new[w_vtx]) {
+                            std::string edge = u + "_" + w_vtx;
+                            in_expr += vars[edge];
+                        }
+                        std::string constraint_name = "Flow_conservation_" + w_vtx;
+                        model.addConstr(in_expr == out_expr, constraint_name);
+                    }
+                }
+            }
+
+            // // print new adj list
+            // for (auto v: new_adj) {
+            //     std::cout << v.first << " -> ";
+            //     for (auto u: v.second) {
+            //         std::cout << u << " ";
+            //     }
+            //     std::cout << std::endl;
+            // }
+            // exit(0);
+
+            // Flow constraints for source nodes
+            for (int32_t i = 0; i < num_walks; i++) {
+                int32_t u = paths[i][0];
+                GRBLinExpr s_expr;
+                s_expr += vars["s_" + std::to_string(u) + "_" + std::to_string(i)];
+                std::string vtx = std::to_string(u) + "_" + std::to_string(i);
+                for (auto v: new_adj[vtx]) {
+                    std::string edge = vtx + "_" + v;
+                    s_expr -= vars[edge];
+                }
+                std::string constraint_name = "Source_conservation_" + std::to_string(u) + "_" + std::to_string(i);
+                model.addConstr(s_expr == 0, constraint_name);
+            }
+
+            // Flow constraints for sink nodes
+            for (int32_t i = 0; i < num_walks; i++) {
+                int32_t u = paths[i].back();
+                GRBLinExpr e_expr;
+                std::string vtx = std::to_string(u) + "_" + std::to_string(i);
+                for (auto v: in_nodes_new[vtx]) {
+                    std::string edge = v + "_" + vtx;
+                    e_expr += vars[edge];
+                }
+                std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_e";
+                e_expr += -1 * vars[var_name];
+                std::string constraint_name = "Sink_conservation_" + std::to_string(u) + "_" + std::to_string(i);
+                model.addConstr(e_expr == 0, constraint_name);
+            }
+
+            // clear vars
+            vars.clear();
+            new_adj.clear();
+            in_nodes_new.clear();
+        }
+        
 
         fprintf(stderr, "[M::%s::%.3f*%.2f] Flow conservation constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
-
-        model.setObjective(obj, GRB_MINIMIZE);
 
         // Check the default optimality tolerance
         double defaultTol = model.get(GRB_DoubleParam_OptimalityTol);
@@ -1032,7 +1233,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         fprintf(stderr, "[M::%s::%.3f*%.2f] Model optimized\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
         // Print constraints
-        bool debug = false;
         if (debug)
         {
             printObjectiveFunction(model);
@@ -1063,9 +1263,12 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         }
 
         // print paths strs
+        std::vector<std::string> recombined_haps;
+        std::vector<std::pair<int32_t, int32_t>> recombination_map;
         std::vector<std::string> path_strs_vec;
         std::set<int32_t> path_vertices;
         int32_t recombination_count = 0;
+        std::string no_recomb_hap = "";
         for (int i = 0; i < path_strs.size(); i++)
         {
             // std::cout << path_strs[i] << std::endl;
@@ -1094,6 +1297,19 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 path_vertices.insert(v);
                 if (debug) std::cerr << "(vtx, hap) => " << "(" << u << "," << hap_1 << ")" << std::endl;
                 if (debug) std::cerr << "(vtx, hap) => " << "(" << v << "," << hap_2 << ")" << std::endl;
+                if (is_naive_exp)
+                {
+                    if (recombined_haps.size() == 0) recombined_haps.push_back(hap_1);
+                    if (hap_1 != hap_2)
+                    {
+                        recombined_haps.push_back(hap_2);
+                        recombination_count++;
+                    }
+                }else
+                {
+                    no_recomb_hap = hap_1;
+                }
+                
             }else
             {
                 if (tokens[2] == "w")
@@ -1104,19 +1320,47 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     path_vertices.insert(u);
                     if (debug) std::cerr << "(vtx, hap) => " << "(" << u << "," << hap_1 << ")" << std::endl;
                     recombination_count++; // only one count for each w vertex
+                    recombination_map.push_back(std::pair<int32_t, int32_t>(std::stoi(tokens[0]), std::stoi(tokens[1])));
                 }else {
                     v = std::stoi(tokens[3]);
                     hap_2 = tokens[4];
                     path_strs_vec.push_back(hap_2);
                     path_vertices.insert(v);
                     if (debug) std::cerr << "(vtx, hap) => " << "(" << v << "," << hap_2 << ")" << std::endl;
+                    recombination_map.push_back(std::pair<int32_t, int32_t>(std::stoi(tokens[3]), std::stoi(tokens[4])));
                 }
             }
             // pritn token[0] -> token[3]
         }
+        // sort recobination map by topological order
+        if (recombination_map.size() > 0)
+        {
+            std::sort(recombination_map.begin(), recombination_map.end(), [&](std::pair<int32_t, int32_t> a, std::pair<int32_t, int32_t> b) {
+                return top_order_map[a.first] < top_order_map[b.first];
+            });
+            recombined_haps.push_back(std::to_string(recombination_map[0].second));
+            std::string old_hap = std::to_string(recombination_map[0].second);
+            for (int i = 1; i < recombination_map.size(); i++)
+            {
+                if (old_hap != std::to_string(recombination_map[i].first))
+                {
+                    recombined_haps.push_back(std::to_string(recombination_map[i].first));
+                    old_hap = std::to_string(recombination_map[i].first);
+                }
+            }
+        }
+        if (recombination_map.size() == 0 && is_naive_exp == 0) recombined_haps.push_back(no_recomb_hap);
         path_strs.clear();
         std::cout << "Recombination count: " << recombination_count << std::endl;
-
+        if (!recombined_haps.empty()) // Sanity check
+        {
+            std::cerr << "Recombined haplotypes: " << hap_id2name[stoi(recombined_haps[0])];
+            for (int i = 1; i < recombined_haps.size(); i++)
+            {
+                std::cout << ">" << hap_id2name[stoi(recombined_haps[i])];
+            }
+            std::cout << std::endl;
+        }
         // generate a set of vertices from the path edges
         std::vector<int32_t> hap_path(path_vertices.begin(), path_vertices.end());
         std::sort(hap_path.begin(), hap_path.end(), [&](int32_t a, int32_t b) {

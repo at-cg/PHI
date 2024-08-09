@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
     int32_t scale_factor = 200;
     int32_t recombination = 1;
     int32_t is_qclp = 0;
+    int32_t is_naive_exp = 0;
 
     int i, c, ret;
 	FILE *fp_help = stderr;
@@ -61,6 +62,7 @@ int main(int argc, char *argv[]) {
         else if (c == 'g') opt.gfa_file = o.arg;
         else if (c == 'R') recombination = atoi(o.arg);
         else if (c == 'q') is_qclp = atoi(o.arg);
+        else if (c == 'N') is_naive_exp = atoi(o.arg);
         else if (c == 'r') opt.reads_file = o.arg;
         else if (c == 'o') opt.hap_file = o.arg;
         else if (c == 'c') max_occ = atoi(o.arg);
@@ -79,6 +81,7 @@ int main(int argc, char *argv[]) {
 		fprintf(fp_help, "    -w INT       Minimizer window size [%d]\n", ipt.w);
         fprintf(fp_help, "    -R INT       Recombination penalty [%d]\n", recombination);
         fprintf(fp_help, "    -q INT       Mode QCLP/ILP (default ILP i.e q0, use q1 for QCLP) [%d]\n", is_qclp);
+        fprintf(fp_help, "    -N INT       Mode OPT/Naive expanded graph (default Optimized i.e N0, use N1 for Naive) [%d]\n", is_naive_exp);
         fprintf(fp_help, "    -t INT       Threads [%d]\n", opt.n_threads);
         fprintf(fp_help, "    -g INT       GFA file [%s]\n", opt.gfa_file.c_str());
         fprintf(fp_help, "    -r INT       Read [%s]\n", opt.reads_file.c_str());
@@ -119,6 +122,7 @@ int main(int argc, char *argv[]) {
     ILP_handle->recombination = recombination; // recombination penalty
     ILP_handle->max_occ = max_occ; // maximum k-mer occurence
     ILP_handle->is_qclp = is_qclp; // mode QCLP/ILP
+    ILP_handle->is_naive_exp = is_naive_exp; // naive mode
 
 
 

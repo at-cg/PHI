@@ -32,6 +32,7 @@
 #include <sstream>
 #include <unordered_set>
 #include <cctype>
+#include <string>
 
 // Gurobi
 #include "gurobi_c++.h"
@@ -56,6 +57,7 @@ class ILP_index {
         std::vector<std::vector<int32_t>> in_paths;
         std::vector<int32_t> top_order;
         std::vector<int32_t> top_order_map;
+        std::vector<std::string> hap_id2name;
 
         // Support Variables
         int32_t lin_ref = 0;
@@ -73,6 +75,7 @@ class ILP_index {
         int32_t max_occ;
         int32_t recombination;
         int32_t is_qclp;
+        int32_t is_naive_exp;
 
         // Constructor
         ILP_index(gfa_t *g);	// This is constructor

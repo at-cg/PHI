@@ -21,4 +21,4 @@ W	test_hap_1	0	chromosome_id	0	3	>s1>s2>s4>s7>s8
 W	test_hap_2	1	chromosome_id	0	3	>s1>s2>s4>s6>s8
 W	test_hap_3	2	chromosome_id	0	3	>s1>s3>s4>s7>s8
 W	test_hap_4	3	chromosome_id	0	3	>s1>s3>s4>s6>s8
-W	test_hap_4	3	chromosome_id	0	3	>s1>s3>s4>s5>s8
+W	test_hap_4	4	chromosome_id	0	3	>s1>s3>s4>s5>s8

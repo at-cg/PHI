@@ -1,1 +1,0 @@
-./AlphaASM -g test/test_new.gfa -r test/read.fa -o x.fa -k3 -w1
