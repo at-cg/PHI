@@ -40,9 +40,7 @@ int main(int argc, char *argv[]) {
 	mg_mapopt_t opt;
 	mg_idxopt_t ipt;
     bool debug = false;
-    int32_t lambda = 10;
-    int32_t scale_factor = 200;
-    int32_t recombination = 1;
+    int32_t recombination = 50;
     int32_t is_qclp = 0;
     int32_t is_naive_exp = 0;
 
