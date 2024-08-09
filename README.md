@@ -21,7 +21,7 @@ cd AlphaASM
 make GUROBI_HOME=/path/to/gurobo_home (i.e. /opt/gurobi1101/linux64)
 
 # test run
-./AlphaASM -t32 -g test/MHC-CHM13.0.gfa.gz -r test/CHM13_test.fa -o CHM13.fa
+./AlphaASM -t32 -g test/MHC_4.gfa.gz -r test/CHM13_test.fa -o CHM13.fa
 ```
 
 ## Description
