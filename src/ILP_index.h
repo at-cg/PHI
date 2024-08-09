@@ -76,6 +76,7 @@ class ILP_index {
         int32_t recombination;
         int32_t is_qclp;
         int32_t is_naive_exp;
+        float threshold;
 
         // Constructor
         ILP_index(gfa_t *g);	// This is constructor

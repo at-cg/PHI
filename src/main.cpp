@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    const char *opt_str = "x:d:c:l:s:R:q:m:h:k:w:t:g:r:o:DSc";
+    const char *opt_str = "x:d:c:l:s:R:q:T:N:m:h:k:w:t:g:r:o:DSc";
     ketopt_t o = KETOPT_INIT;
 	mg_mapopt_t opt;
 	mg_idxopt_t ipt;
@@ -43,6 +43,7 @@ int main(int argc, char *argv[]) {
     int32_t recombination = 50;
     int32_t is_qclp = 0;
     int32_t is_naive_exp = 0;
+    float threshold = 0.95f;
 
     int i, c, ret;
 	FILE *fp_help = stderr;
@@ -61,6 +62,7 @@ int main(int argc, char *argv[]) {
         else if (c == 'R') recombination = atoi(o.arg);
         else if (c == 'q') is_qclp = atoi(o.arg);
         else if (c == 'N') is_naive_exp = atoi(o.arg);
+        else if (c == 'T') threshold = atof(o.arg);
         else if (c == 'r') opt.reads_file = o.arg;
         else if (c == 'o') opt.hap_file = o.arg;
         else if (c == 'c') max_occ = atoi(o.arg);
@@ -80,6 +82,7 @@ int main(int argc, char *argv[]) {
         fprintf(fp_help, "    -R INT       Recombination penalty [%d]\n", recombination);
         fprintf(fp_help, "    -q INT       Mode QCLP/ILP (default ILP i.e q0, use q1 for QCLP) [%d]\n", is_qclp);
         fprintf(fp_help, "    -N INT       Mode OPT/Naive expanded graph (default Optimized i.e N0, use N1 for Naive) [%d]\n", is_naive_exp);
+        fprintf(fp_help, "    -T FLOAT     Threshold for kmer filtering [%f]\n", threshold);
         fprintf(fp_help, "    -t INT       Threads [%d]\n", opt.n_threads);
         fprintf(fp_help, "    -g INT       GFA file [%s]\n", opt.gfa_file.c_str());
         fprintf(fp_help, "    -r INT       Read [%s]\n", opt.reads_file.c_str());
@@ -121,6 +124,7 @@ int main(int argc, char *argv[]) {
     ILP_handle->max_occ = max_occ; // maximum k-mer occurence
     ILP_handle->is_qclp = is_qclp; // mode QCLP/ILP
     ILP_handle->is_naive_exp = is_naive_exp; // naive mode
+    ILP_handle->threshold = threshold; // threshold for k-mer filtering
 
 
 
