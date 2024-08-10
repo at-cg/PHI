@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     int32_t recombination = 50;
     int32_t is_qclp = 0;
     int32_t is_naive_exp = 0;
-    float threshold = 0.95f;
+    float threshold = 0.99f;
 
     int i, c, ret;
 	FILE *fp_help = stderr;
