@@ -1094,7 +1094,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                         {
                             GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_out);
                             vars[var_out] = var;
-                            vtx_expr += c_1 * var;
+                            vtx_expr += 0 * var; // only 1 penalty for recombination
                         }  
                     }
                 }
