@@ -1065,43 +1065,71 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 }
             }
 
-            std::map<std::string, bool> visited_vtx;
-            
-            // with recombination (This allows flow from u_0_w_u_v -> w_u_v_v_0 type edges but with penality, so no recmbination penalty vertices will be chosen)
-            // This is to make sure that the expanded graph remains simple to debug
+            // Populate hash table to quickly get vertex index in haplotype
+            std::vector<std::unordered_map<int, int>> elementIndexMaps(paths.size());
+            for(int h = 0; h < paths.size(); h++)
+            {
+                std::unordered_map<int, int> elementIndexMap;
+                for (int i = 0; i < paths[h].size(); ++i) 
+                {
+                    elementIndexMap[paths[h][i]] = i;
+                }
+                elementIndexMaps[h] = elementIndexMap;
+            }
+
+            // Add recombination vertices and edges
             for (int32_t u = 0; u < adj_list.size(); u++)
             {
                 for (auto v : adj_list[u])
                 {
+    
                     std::string new_vtx = "w_" + std::to_string(u) + "_" + std::to_string(v);
 
-                    for (auto i : haps[u])
+                    bool new_vertex_used = false;
+                    for(auto h : haps[u])
                     {
-                        std::string var_in = std::to_string(u) + "_" + std::to_string(i) + "_" + new_vtx;
-                        new_adj[std::to_string(u) + "_" + std::to_string(i)].push_back(new_vtx);
-                        if (vars.find(var_in) == vars.end()) // Variable does not exist
+                        // check if the next entry paths[h] after u is v
+                        int index = elementIndexMaps[h][u];
+
+                        if(index == paths[h].size() || paths[h][index+1] != v)
                         {
-                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_in);
-                            vars[var_in] = var;
-                            vtx_expr += c_1 * var;
+
+                            if(!new_vertex_used)
+                            {
+                                new_vertex_used = true;
+                            }
+                            std::string var_name_1 = std::to_string(u) + "_" + std::to_string(h) + "_" + new_vtx;
+                            new_adj[std::to_string(u) + "_" + std::to_string(h)].push_back(new_vtx);
+                            
+                            if (vars.find(var_name_1) == vars.end()) // Variable does not exist
+                            {
+                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
+                                vars[var_name_1] = var;
+                            }
+                            vtx_expr += c_1 * vars[var_name_1];
+
                         }
                     }
-                    for (auto j : haps[v])
+
+                    if(new_vertex_used)
                     {
-                        std::string var_out = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(j);
-                        new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(j));
-                        if (vars.find(var_out) == vars.end()) // Variable does not exist
+                        for(auto h : haps[v])
                         {
-                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_out);
-                            vars[var_out] = var;
-                            vtx_expr += 0 * var; // only 1 penalty for recombination
-                        }  
+                            std::string var_name_2 = new_vtx + "_" + std::to_string(v) + "_" + std::to_string(h);
+                            new_adj[new_vtx].push_back(std::to_string(v) + "_" + std::to_string(h));
+
+                            if (vars.find(var_name_2) == vars.end()) // Variable does not exist
+                            {
+                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
+                                vars[var_name_2] = var;
+                            }
+                            vtx_expr += 0 * vars[var_name_2];
+
+                        }
                     }
                 }
             }
-            // int32_t max_recomb = 100;
-            // model.addConstr(recomb_expr <= max_recomb, "Recombination_constraint_less");
-            // model.addConstr(recomb_expr >= max_recomb, "Recombination_constraint_greater");
+            elementIndexMaps.clear();
 
             // add (1-z_{i}) constraints
             GRBLinExpr z_expr;
