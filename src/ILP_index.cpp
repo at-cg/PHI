@@ -433,6 +433,13 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
                 set.insert(value);
                 unique_vtxs_vec.push_back(value);
             }
+            if (set.find(value) != set.end()) // value exists but not the previous one [cyclic case] 1 -> 3 -> 2 -> 3 -> 4
+            {
+                if (value != unique_vtxs_vec.back()) // not the same as the previous one
+                {
+                    unique_vtxs_vec.push_back(value);
+                }
+            }
         }
         set.clear();
         // push the anchor
@@ -536,13 +543,6 @@ std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::v
     return anchors;
 }
 
-// void create_upper_case(std::string &str)
-// {
-//     // if any index has a lower case then convert the whole string to upper case
-//     // only a -> A, c -> C, g -> G, t -> T and n -> N
-//     // std::transform(str_.begin(), str_.end(), str_.begin(), ::toupper);
-// }
-
 void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &ip_reads)
 {
     /* 
@@ -624,48 +624,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         } 
     }
 
-    std::vector<std::vector<std::vector<std::vector<int32_t>>>> Anchor_hits_filt(Sp_R.size(), std::vector<std::vector<std::vector<int32_t>>>(num_walks));   
-    #pragma omp parallel for num_threads(num_threads)
-    for (int32_t r = 0; r < Sp_R.size(); r++)
-    {
-        std::map<std::string, std::pair<int32_t, std::pair<std::vector<int32_t>, std::vector<int32_t>>>> Anchor_hits_map;
-        for (int32_t h = 0; h < num_walks; h++)
-        {
-            for (int32_t k = 0; k < Anchor_hits[r][h].size(); k++)
-            {
-                std::string anchor_str = "";
-                for (auto v: Anchor_hits[r][h][k])
-                {
-                    anchor_str += std::to_string(v) + "_";
-                }
-                if (Anchor_hits_map.find(anchor_str) == Anchor_hits_map.end())
-                {
-                    Anchor_hits_map[anchor_str].first = 1;
-                    Anchor_hits_map[anchor_str].second.first = Anchor_hits[r][h][k];
-                    Anchor_hits_map[anchor_str].second.second.push_back(h);
-                }else
-                {
-                    Anchor_hits_map[anchor_str].first++;
-                    Anchor_hits_map[anchor_str].second.second.push_back(h);
-                }
-            }
-        }
-        // remove all the anchors with only one occurence
-        for (auto &anchor: Anchor_hits_map)
-        {
-            if (anchor.second.first >= threshold * num_walks) continue;
-            for (auto h : anchor.second.second.second)
-            {
-                Anchor_hits_filt[r][h].push_back(anchor.second.second.first);
-            }
-        }
-        Anchor_hits_map.clear();
-    }
-
-    Anchor_hits.clear(); // clear the memory
-    Anchor_hits = Anchor_hits_filt;
-    Anchor_hits_filt.clear(); // clear the memory
-
     // find number of kmers
     for (int32_t h = 0; h < num_walks; h++)
     {
@@ -679,8 +637,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     }
     Sp_R.clear();
 
-    // fprintf(stderr, "[M::%s::%.3f*%.2f] %d Anchors found\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), num_kmers);
-    fprintf(stderr, "[M::%s::%.3f*%.2f] %d Anchors found with %.2f threshold\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), num_kmers, threshold);
+    fprintf(stderr, "[M::%s::%.3f*%.2f] %d Anchors found\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), num_kmers);
+    // fprintf(stderr, "[M::%s::%.3f*%.2f] %d Anchors found with %.2f threshold\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), num_kmers, threshold);
 
     std::vector<std::vector<int32_t>> in_nodes(n_vtx);
     for (int32_t i = 0; i < n_vtx; i++)
@@ -890,9 +848,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     }
                 }
             }
-            // int32_t max_recomb = 100;
-            // model.addConstr(recomb_expr <= max_recomb, "Recombination_constraint_less");
-            // model.addConstr(recomb_expr >= max_recomb, "Recombination_constraint_greater");
 
             // add (1-z_{i}) constraints
             GRBLinExpr z_expr;
@@ -1198,16 +1153,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 }
             }
 
-            // // print new adj list
-            // for (auto v: new_adj) {
-            //     std::cout << v.first << " -> ";
-            //     for (auto u: v.second) {
-            //         std::cout << u << " ";
-            //     }
-            //     std::cout << std::endl;
-            // }
-            // exit(0);
-
             // Flow constraints for source nodes
             for (int32_t i = 0; i < num_walks; i++) {
                 int32_t u = paths[i][0];
@@ -1287,12 +1232,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         }
 
         // print paths strs
-        std::vector<std::string> recombined_haps;
-        std::vector<std::pair<int32_t, int32_t>> recombination_map;
-        std::vector<std::string> path_strs_vec;
-        std::set<int32_t> path_vertices;
+        std::set<std::pair<int32_t, int32_t>> path_vertices_hap;
         int32_t recombination_count = 0;
-        std::string no_recomb_hap = "";
         for (int i = 0; i < path_strs.size(); i++)
         {
             // std::cout << path_strs[i] << std::endl;
@@ -1315,92 +1256,88 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 hap_1 = tokens[1];
                 v = std::stoi(tokens[2]);
                 hap_2 = tokens[3];
-                path_strs_vec.push_back(hap_1);
-                path_strs_vec.push_back(hap_2);
-                path_vertices.insert(u);
-                path_vertices.insert(v);
+                path_vertices_hap.insert({u, std::stoi(hap_1)});
+                path_vertices_hap.insert({v, std::stoi(hap_2)});
                 if (debug) std::cerr << "(vtx, hap) => " << "(" << u << "," << hap_1 << ")" << std::endl;
                 if (debug) std::cerr << "(vtx, hap) => " << "(" << v << "," << hap_2 << ")" << std::endl;
-                if (is_naive_exp)
-                {
-                    if (recombined_haps.size() == 0) recombined_haps.push_back(hap_1);
-                    if (hap_1 != hap_2)
-                    {
-                        recombined_haps.push_back(hap_2);
-                        recombination_count++;
-                    }
-                }else
-                {
-                    no_recomb_hap = hap_1;
-                }
-                
             }else
             {
                 if (tokens[2] == "w")
                 {
                     u = std::stoi(tokens[0]);
                     hap_1 = tokens[1];
-                    path_strs_vec.push_back(hap_1);
-                    path_vertices.insert(u);
+                    path_vertices_hap.insert({u, std::stoi(hap_1)});
                     if (debug) std::cerr << "(vtx, hap) => " << "(" << u << "," << hap_1 << ")" << std::endl;
-                    recombination_count++; // only one count for each w vertex
                     int32_t u_int = std::stoi(tokens[0]);
                     int32_t hap_int = std::stoi(tokens[1]);
-                    recombination_map.push_back({u_int, hap_int});
                 }else {
                     v = std::stoi(tokens[3]);
                     hap_2 = tokens[4];
-                    path_strs_vec.push_back(hap_2);
-                    path_vertices.insert(v);
+                    path_vertices_hap.insert({v, std::stoi(hap_2)});
                     if (debug) std::cerr << "(vtx, hap) => " << "(" << v << "," << hap_2 << ")" << std::endl;
                     int32_t v_int = std::stoi(tokens[3]);
                     int32_t hap_int = std::stoi(tokens[4]);
-                    recombination_map.push_back({v_int, hap_int});
-                }
-            }
-            // pritn token[0] -> token[3]
-        }
-        // sort recobination map by topological order
-        if (recombination_map.size() > 0)
-        {
-            std::sort(recombination_map.begin(), recombination_map.end(), [&](std::pair<int32_t, int32_t> a, std::pair<int32_t, int32_t> b) {
-                return top_order_map[a.first] < top_order_map[b.first];
-            });
-            recombined_haps.push_back(std::to_string(recombination_map[0].second));
-            std::string old_hap = std::to_string(recombination_map[0].second);
-            for (int i = 1; i < recombination_map.size(); i++)
-            {
-                if (old_hap != std::to_string(recombination_map[i].second))
-                {
-                    recombined_haps.push_back(std::to_string(recombination_map[i].second));
-                    old_hap = std::to_string(recombination_map[i].second);
                 }
             }
         }
-        if (recombination_map.size() == 0 && is_naive_exp == 0) recombined_haps.push_back(no_recomb_hap);
-        path_strs.clear();
-        std::cout << "Recombination count: " << recombination_count << std::endl;
-        if (!recombined_haps.empty()) // Sanity check
+        std::vector<std::pair<int32_t, int32_t>> path_vertices_hap_vec(path_vertices_hap.begin(), path_vertices_hap.end());
+        // sort path_vertices_hap_vec based on first element
+        std::sort(path_vertices_hap_vec.begin(), path_vertices_hap_vec.end(), [&](std::pair<int32_t, int32_t> a, std::pair<int32_t, int32_t> b) {
+            return top_order_map[a.first] < top_order_map[b.first];
+        });
+
+        int32_t prev_hap = path_vertices_hap_vec[0].second;
+        int32_t prev_str_id = 0;
+        int32_t str_id = 0;
+        std::vector<std::string> hap_st_en_vec;
+
+        for (int32_t i = 1; i < path_vertices_hap_vec.size(); ++i)
         {
-            std::cerr << "Recombined haplotypes: " << hap_id2name[stoi(recombined_haps[0])];
-            for (int i = 1; i < recombined_haps.size(); i++)
+            str_id += node_seq[path_vertices_hap_vec[i].first].size();
+
+            if (prev_hap != path_vertices_hap_vec[i].second)
             {
-                std::cout << ">" << hap_id2name[stoi(recombined_haps[i])];
+                recombination_count++;
+                std::string str = ">(" + hap_id2name[prev_hap] + ",[" + std::to_string(prev_str_id) + "," + std::to_string(str_id - 1) + "])";
+                hap_st_en_vec.push_back(str);
+                prev_hap = path_vertices_hap_vec[i].second;
+                prev_str_id = str_id;
             }
-            std::cout << std::endl;
         }
-        // generate a set of vertices from the path edges
-        std::vector<int32_t> hap_path(path_vertices.begin(), path_vertices.end());
-        std::sort(hap_path.begin(), hap_path.end(), [&](int32_t a, int32_t b) {
-            return top_order_map[a] < top_order_map[b];
-        }); // To ensure the path is in topological order
+
+        // Capture the last segment after the loop
+        str_id += node_seq[path_vertices_hap_vec.back().first].size();
+        std::string str = ">(" + hap_id2name[path_vertices_hap_vec.back().second] + ",[" + std::to_string(prev_str_id) + "," + std::to_string(str_id - 1) + "])";
+        hap_st_en_vec.push_back(str);
+
+
+        std::cerr << "Recombination count: " << recombination_count << std::endl;
+        if (recombination_count > 0)
+        {
+            std::cerr << "Recombined haplotypes: ";
+            for (int i = 0; i < hap_st_en_vec.size(); i++)
+            {
+                std::cerr << hap_st_en_vec[i];
+            }
+            std::cerr << std::endl;
+        }else
+        {
+            std::cerr << "Recombined haplotypes: ";
+            int32_t sum_str = 0;
+            for (int i = 0; i < path_vertices_hap_vec.size(); i++)
+            {
+                sum_str += node_seq[path_vertices_hap_vec[i].first].size();
+            }
+            std::cerr << ">(" << hap_id2name[prev_hap] << ",[" << 0 << "," << sum_str - 1 << "])" << std::endl;
+        }
+        
         
         // verify the path vertices by checking if there exist and edge between the vertices
-        if (debug) std::cout << "(" << "s" << "," << hap_path[0] << ")" << "->";
-        for (int i = 1; i < hap_path.size(); i++)
+        if (debug) std::cout << "(" << "s" << "," << path_vertices_hap_vec[0].first << ")" << "->";
+        for (int i = 1; i < path_vertices_hap_vec.size(); i++)
         {
-            int32_t u = hap_path[i - 1];
-            int32_t v = hap_path[i];
+            int32_t u = path_vertices_hap_vec[i - 1].first;
+            int32_t v = path_vertices_hap_vec[i].first;
             bool exist_edge = false;
             for (auto w: adj_list[u])
             {
@@ -1417,12 +1354,12 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             }
             if (debug) std::cout << "(" << u << "," << v << ")" << "->";
         }
-        if (debug) std::cout << "(" << hap_path.back() << "," << "e" << ")" << std::endl;
+        if (debug) std::cout << "(" << path_vertices_hap_vec.back().first << "," << "e" << ")" << std::endl;
 
         // Get the path string and store in haplotype
-        for (int i = 0; i < hap_path.size(); i++)
+        for (int i = 0; i < path_vertices_hap_vec.size(); i++)
         {
-            haplotype += node_seq[hap_path[i]];
+            haplotype += node_seq[path_vertices_hap_vec[i].first];
         }
 
     } catch (GRBException e) {
