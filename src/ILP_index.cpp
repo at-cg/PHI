@@ -1290,12 +1290,12 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         int32_t prev_str_id = 0;
         int32_t str_id = 0;
         std::vector<std::string> hap_st_en_vec;
-
+        str_id += node_seq[path_vertices_hap_vec[0].first].size();
         for (int32_t i = 1; i < path_vertices_hap_vec.size(); ++i)
         {
             str_id += node_seq[path_vertices_hap_vec[i].first].size();
 
-            if (prev_hap != path_vertices_hap_vec[i].second)
+            if (prev_hap != path_vertices_hap_vec[i].second) // only prints prev_hap not current hap hence additionally we need to print the last segment
             {
                 recombination_count++;
                 std::string str = ">(" + hap_id2name[prev_hap] + ",[" + std::to_string(prev_str_id) + "," + std::to_string(str_id - 1) + "])";
@@ -1306,7 +1306,6 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         }
 
         // Capture the last segment after the loop
-        str_id += node_seq[path_vertices_hap_vec.back().first].size();
         std::string str = ">(" + hap_id2name[path_vertices_hap_vec.back().second] + ",[" + std::to_string(prev_str_id) + "," + std::to_string(str_id - 1) + "])";
         hap_st_en_vec.push_back(str);
 
