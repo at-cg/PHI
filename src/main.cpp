@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     int32_t recombination = 50;
     int32_t is_qclp = 0;
     int32_t is_naive_exp = 0;
-    float threshold = 0.99f;
+    float threshold = 1.0f;
 
     int i, c, ret;
 	FILE *fp_help = stderr;
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
         fprintf(fp_help, "    -R INT       Recombination penalty [%d]\n", recombination);
         fprintf(fp_help, "    -q INT       Mode QCLP/ILP (default ILP i.e q0, use q1 for QCLP) [%d]\n", is_qclp);
         fprintf(fp_help, "    -N INT       Mode OPT/Naive expanded graph (default Optimized i.e N0, use N1 for Naive) [%d]\n", is_naive_exp);
-        // fprintf(fp_help, "    -T FLOAT     Threshold for kmer filtering [%f]\n", threshold);
+        fprintf(fp_help, "    -T FLOAT     Threshold for kmer filtering [%.3f]\n", threshold);
         fprintf(fp_help, "    -t INT       Threads [%d]\n", opt.n_threads);
         fprintf(fp_help, "    -g INT       GFA file [%s]\n", opt.gfa_file.c_str());
         fprintf(fp_help, "    -r INT       Read [%s]\n", opt.reads_file.c_str());
