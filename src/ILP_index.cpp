@@ -1106,7 +1106,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                         // check if the next entry paths[h] after u is v
                         int index = elementIndexMaps[h][u];
 
-                        if(index == paths[h].size() || paths[h][index+1] != v)
+                        if(index == paths[h].size()-1 || paths[h][index+1] != v)
                         {
 
                             if(!new_vertex_used)
@@ -1138,7 +1138,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                                 GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
                                 vars[var_name_2] = var;
                             }
-                            vtx_expr += 0 * vars[var_name_2];
+                            vtx_expr += c_1 * vars[var_name_2];
 
                         }
                     }
