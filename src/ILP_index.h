@@ -90,7 +90,7 @@ class ILP_index {
         void ILP_function(std::vector<std::pair<std::string, std::string>> &ip_reads);
         std::vector<std::pair<uint64_t, Anchor>> index_kmers(int32_t hap);
         std::set<uint64_t> compute_hashes(std::string &read_seq);
-        std::vector<std::vector<std::vector<int32_t>>> compute_anchors(std::vector<std::pair<uint64_t, Anchor>> &minimizers, std::map<uint64_t, int32_t> &read_hashes);
+        std::vector<std::vector<std::vector<int32_t>>> compute_anchors(std::vector<std::pair<uint64_t, Anchor>> &minimizers, std::unordered_map<uint64_t, int32_t> &read_hashes);
 
         /* Please add your ILP functions here */
 };

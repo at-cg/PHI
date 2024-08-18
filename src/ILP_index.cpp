@@ -507,36 +507,44 @@ std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq) {
     return read_hashes;
 }
 
-std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::vector<std::pair<uint64_t, Anchor>> &minimizers, std::map<uint64_t, int32_t> &read_hashes)
+std::vector<std::vector<std::vector<int32_t>>> ILP_index::compute_anchors(std::vector<std::pair<uint64_t, Anchor>> &minimizers, std::unordered_map<uint64_t, int32_t> &read_hashes) // Use unordered_map for faster lookups
 {
-    std::vector<std::vector<std::vector<int32_t>>> anchors;
+    std::vector<std::vector<std::vector<int32_t>>> anchors(read_hashes.size());
     std::vector<std::vector<std::pair<int32_t, std::vector<int32_t>>>> local_anchors(num_threads);
-    #pragma omp parallel for num_threads(num_threads)
-    for (int64_t i = 0; i < minimizers.size(); i++)
+
+    #pragma omp parallel num_threads(num_threads)
     {
         int32_t tid = omp_get_thread_num();
-        auto minimizer  = minimizers[i];
-        auto hash = minimizer.first;
-        if (read_hashes.find(hash) != read_hashes.end()) // Found a match
+        auto &thread_local_anchors = local_anchors[tid];
+        
+        // Reserve some space to minimize reallocation (adjust size based on data distribution)
+        thread_local_anchors.reserve(minimizers.size() / num_threads);
+
+        #pragma omp for nowait
+        for (int64_t i = 0; i < minimizers.size(); i++)
         {
-            std::vector<int32_t> anchor;
-            for (size_t j = 0; j < minimizer.second.k_mers.size(); j++)
+            const auto &minimizer = minimizers[i];
+            uint64_t hash = minimizer.first;
+
+            auto it = read_hashes.find(hash);
+            if (it != read_hashes.end()) // Found a match
             {
-                anchor.push_back(minimizer.second.k_mers[j]);
+                int32_t read_id = it->second;
+                // Directly construct the anchor vector in place
+                thread_local_anchors.emplace_back(read_id, minimizer.second.k_mers);
             }
-            local_anchors[tid].push_back(std::make_pair(read_hashes[hash], anchor)); // id, anchor
         }
     }
 
-    anchors.resize(read_hashes.size());
-    for (int32_t i = 0; i < num_threads; i++)
+    // Merge thread-local anchors into the final anchors vector
+    for (const auto &thread_anchors : local_anchors)
     {
-        for (auto anchor: local_anchors[i])
+        for (const auto &anchor : thread_anchors)
         {
-            anchors[anchor.first].push_back(anchor.second);  // (id -> anchor_path)
+            anchors[anchor.first].push_back(std::move(anchor.second));
         }
     }
-    local_anchors.clear();
+
     return anchors;
 }
 
@@ -582,7 +590,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     // Compute the anchors
     int64_t num_kmers = 0;
     std::vector<std::set<uint64_t>> Read_hashes(num_reads);
-    std::map<uint64_t, int32_t> Sp_R;
+    std::unordered_map<uint64_t, int32_t> Sp_R;
     #pragma omp parallel for num_threads(num_threads)
     for (int32_t r = 0; r < num_reads; r++)
     {
