@@ -7,21 +7,30 @@ ILP_index::ILP_index(gfa_t *g) {
 
 KSEQ_INIT(gzFile, gzread)
 
-uint64_t fnv1a_hash_64(const std::string& str) {
-    // FNV-1a 64-bit parameters
-    const uint64_t FNV_prime = 0x100000001b3;
-    const uint64_t offset_basis = 0xcbf29ce484222325;
+std::string reverse_strand(const std::string &kmer) {
+    std::string rev_kmer = kmer;
+    std::reverse(rev_kmer.begin(), rev_kmer.end());
+    std::transform(rev_kmer.begin(), rev_kmer.end(), rev_kmer.begin(),
+                [](char c) {
+                    switch (c) {
+                        case 'A': return 'T';
+                        case 'C': return 'G';
+                        case 'G': return 'C';
+                        case 'T': return 'A';
+                        default: return c;
+                    }
+                });
+    return rev_kmer;
+}
 
-    // Initialize hash with offset basis
-    uint64_t hash = offset_basis;
-
-    // Process each byte of the string
-    for (char c : str) {
-        hash ^= static_cast<uint64_t>(c);
-        hash *= FNV_prime;
-    }
-
-    return hash;
+uint64_t MurmurHash64(const void *key, int len, uint32_t seed) {
+    uint64_t hash[2];  // Array to hold the 128-bit hash (2 x 64-bit)
+    
+    // Generate the 128-bit hash using MurmurHash3_x64_128
+    MurmurHash3_x64_128(key, len, seed, hash);
+    
+    // Return the first 64 bits as the 64-bit hash value
+    return hash[0];
 }
 
 void::ILP_index::read_gfa() 
@@ -334,43 +343,13 @@ void ILP_index::read_ip_reads(std::vector<std::pair<std::string, std::string>> &
     gzclose(fp);
 }
 
-std::string reverse_strand(std::string seq)
-{
-    std::string rev_seq = "";
-    for (int i = seq.size() - 1; i >= 0; i--)
-    {
-        if (seq[i] == 'A' || seq[i] == 'a')
-        {
-            rev_seq += 'T';
-        }
-        else if (seq[i] == 'T' || seq[i] == 't')
-        {
-            rev_seq += 'A';
-        }
-        else if (seq[i] == 'C' || seq[i] == 'c')
-        {
-            rev_seq += 'G';
-        }
-        else if (seq[i] == 'G' || seq[i] == 'g')
-        {
-            rev_seq += 'C';
-        }else
-        {
-            rev_seq += seq[i];
-        }
-        
-    }
-    return rev_seq;
-}
-
-std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
-{
+std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap) {
     std::vector<std::pair<uint64_t, Anchor>> kmer_index;
     std::string haplotype;
     for (size_t i = 0; i < paths[hap].size(); i++) {
         haplotype += node_seq[paths[hap][i]];
     }
-    // transform lower case letters to upper case
+    // Transform lower case letters to upper case
     std::transform(haplotype.begin(), haplotype.end(), haplotype.begin(), ::toupper);
 
     if (haplotype.size() < window + k_mer - 1) return kmer_index;
@@ -385,79 +364,83 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
         }
     }
 
-    int32_t count_kmers = window + k_mer - 1;
-    
+    std::deque<std::pair<uint64_t, size_t>> deq_fwd;
+    std::deque<std::pair<uint64_t, size_t>> deq_rev;
     uint64_t prev_hash = 0;
-    for (int32_t i = 0; i <= haplotype.size() - count_kmers; i++) {
-        std::string fwd_kmer = std::string(k_mer, 'Z');
-        std::string rev_kmer = std::string(k_mer, 'Z');
-        int32_t start_idx_fwd = i;
-        int32_t start_idx_rev = i;
 
-        for (size_t j = i; j < i + window; j++) {
-            std::string kmer = haplotype.substr(j, k_mer);
-            std::string local_fwd_kmer = kmer;
-            std::string local_rev_kmer = reverse_strand(kmer);
+    for (int32_t i = 0; i <= haplotype.size() - k_mer; ++i) {
+        std::string kmer = haplotype.substr(i, k_mer);
+        std::string rev_kmer = reverse_strand(kmer);
 
-            if (local_fwd_kmer < fwd_kmer) {
-                fwd_kmer = local_fwd_kmer;
-                start_idx_fwd = j;
-            }
+        uint64_t fwd_hash = MurmurHash64(kmer.c_str(), kmer.size(), 0);
+        uint64_t rev_hash = MurmurHash64(rev_kmer.c_str(), rev_kmer.size(), 0);
 
-            if (local_rev_kmer < rev_kmer) {
-                rev_kmer = local_rev_kmer;
-                start_idx_rev = j;
-            }
+        // Remove elements that are out of the current window
+        if (!deq_fwd.empty() && deq_fwd.front().second <= i - window) {
+            deq_fwd.pop_front();
         }
 
-        if (fwd_kmer == rev_kmer) continue; // Cannonical k-mer
-
-        uint64_t hash = fnv1a_hash_64(fwd_kmer);
-        int32_t start_idx = start_idx_fwd;
-
-        if (fwd_kmer > rev_kmer) {
-            hash = fnv1a_hash_64(rev_kmer);
-            start_idx = start_idx_rev;
+        if (!deq_rev.empty() && deq_rev.front().second <= i - window) {
+            deq_rev.pop_front();
         }
 
-        if (prev_hash == hash) continue; // Skip the same k-mer
-        prev_hash = hash; // handles first k-mer as well
+        // Maintain deque for forward k-mers
+        while (!deq_fwd.empty() && deq_fwd.back().first >= fwd_hash) {
+            deq_fwd.pop_back();
+        }
+        deq_fwd.emplace_back(fwd_hash, i);
 
-        Anchor anchor;
-        anchor.h = hap;
-        std::unordered_set<int32_t> set;
-        std::vector<int32_t> unique_vtxs_vec;
-        for (size_t j = start_idx; j < start_idx + k_mer; j++) {
-            int32_t value = idx_vtx_map[j];
-            if (set.find(value) == set.end()) {
-                set.insert(value);
-                unique_vtxs_vec.push_back(value);
-            }
-            if (set.find(value) != set.end()) // value exists but not the previous one [cyclic case] 1 -> 3 -> 2 -> 3 -> 4
-            {
-                if (value != unique_vtxs_vec.back()) // not the same as the previous one
-                {
-                    unique_vtxs_vec.push_back(value);
+        // Maintain deque for reverse k-mers
+        while (!deq_rev.empty() && deq_rev.back().first >= rev_hash) {
+            deq_rev.pop_back();
+        }
+        deq_rev.emplace_back(rev_hash, i);
+
+        // After the first window, start processing the minimum k-mer in the window
+        if (i >= window - 1) {
+            uint64_t min_hash = std::min(deq_fwd.front().first, deq_rev.front().first);
+
+            if (min_hash != prev_hash) {
+                int32_t start_idx = (deq_fwd.front().first <= deq_rev.front().first) ? deq_fwd.front().second : deq_rev.front().second;
+                
+                Anchor anchor;
+                anchor.h = hap;
+                std::unordered_set<int32_t> set;
+                std::vector<int32_t> unique_vtxs_vec;
+                for (size_t j = start_idx; j < start_idx + k_mer; j++) {
+                    int32_t value = idx_vtx_map[j];
+                    if (set.find(value) == set.end()) {
+                        set.insert(value);
+                        unique_vtxs_vec.push_back(value);
+                    }
+                    if (set.find(value) != set.end()) // value exists but not the previous one [cyclic case] 1 -> 3 -> 2 -> 3 -> 4
+                    {
+                        if (value != unique_vtxs_vec.back()) // not the same as the previous one
+                        {
+                            unique_vtxs_vec.push_back(value);
+                        }
+                    }
                 }
+                set.clear();
+                // push the anchor
+                for (auto v : unique_vtxs_vec) {
+                    anchor.k_mers.push_back(v);
+                }
+                kmer_index.push_back(std::make_pair(min_hash, anchor));
+
+                prev_hash = min_hash;
             }
         }
-        set.clear();
-        // push the anchor
-        for (auto v: unique_vtxs_vec) {
-            anchor.k_mers.push_back(v);
-        }
-        kmer_index.push_back(std::make_pair(hash, anchor));
     }
 
     bool only_unique = false;
-    if (only_unique)
-    {
+    if (only_unique) {
         std::map<uint64_t, Anchor> kmer_index_set;
-        for (auto kmer: kmer_index) {
+        for (auto kmer : kmer_index) {
             kmer_index_set[kmer.first] = kmer.second;
         }
         kmer_index.clear();
-        for (auto kmer: kmer_index_set) {
+        for (auto kmer : kmer_index_set) {
             kmer_index.push_back(kmer);
         }
     }
@@ -465,46 +448,60 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
     return kmer_index;
 }
 
-std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq)
-{
-    // create upper case
+std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq) {
+    // Convert to upper case
     std::transform(read_seq.begin(), read_seq.end(), read_seq.begin(), ::toupper);
-    // Find the minimizers in the read and match with the haplotype and return the anchors
+
+    // Set to store unique hashes
     std::set<uint64_t> read_hashes;
+
+    // Total number of k-mers in each window
     int32_t count_kmers = window + k_mer - 1;
+
     if (read_seq.size() < count_kmers) return read_hashes;
 
     uint64_t prev_hash = 0;
-    for (int32_t i = 0; i <= read_seq.size() - count_kmers; i++) {
-        std::string fwd_kmer = std::string(k_mer, 'Z'); // ZZ...Z
-        std::string rev_kmer = std::string(k_mer, 'Z');
 
-        for (size_t j = i; j < i + window; j++) {
-            std::string kmer = read_seq.substr(j, k_mer);
-            std::string local_fwd_kmer = kmer;
-            std::string local_rev_kmer = reverse_strand(kmer);
+    std::deque<std::pair<uint64_t, size_t>> deq_fwd;
+    std::deque<std::pair<uint64_t, size_t>> deq_rev;
 
-            if (local_fwd_kmer < fwd_kmer) {
-                fwd_kmer = local_fwd_kmer;
-            }
+    for (int32_t i = 0; i <= read_seq.size() - k_mer; ++i) {
+        std::string kmer = read_seq.substr(i, k_mer);
+        std::string rev_kmer = reverse_strand(kmer);
 
-            if (local_rev_kmer < rev_kmer) {
-                rev_kmer = local_rev_kmer;
-            }
+        uint64_t fwd_hash = MurmurHash64(kmer.c_str(), kmer.size(), 0);
+        uint64_t rev_hash = MurmurHash64(rev_kmer.c_str(), rev_kmer.size(), 0);
+
+        // Remove elements that are out of the current window
+        if (!deq_fwd.empty() && deq_fwd.front().second <= i - window) {
+            deq_fwd.pop_front();
         }
 
-        if (fwd_kmer == rev_kmer) continue; // Cannonical k-mer
-
-        uint64_t hash = fnv1a_hash_64(fwd_kmer);
-
-        if (fwd_kmer > rev_kmer) {
-            hash = fnv1a_hash_64(rev_kmer);
+        if (!deq_rev.empty() && deq_rev.front().second <= i - window) {
+            deq_rev.pop_front();
         }
 
-        if (prev_hash == hash) continue; // Skip the same k-mer
-        prev_hash = hash; // handles first k-mer as well
+        // Maintain deque for forward k-mers
+        while (!deq_fwd.empty() && deq_fwd.back().first >= fwd_hash) {
+            deq_fwd.pop_back();
+        }
+        deq_fwd.emplace_back(fwd_hash, i);
 
-        read_hashes.insert(hash);
+        // Maintain deque for reverse k-mers
+        while (!deq_rev.empty() && deq_rev.back().first >= rev_hash) {
+            deq_rev.pop_back();
+        }
+        deq_rev.emplace_back(rev_hash, i);
+
+        // After the first window, start processing the minimum k-mer in the window
+        if (i >= window - 1) {
+            uint64_t min_hash = std::min(deq_fwd.front().first, deq_rev.front().first);
+
+            if (min_hash != prev_hash) {
+                read_hashes.insert(min_hash);
+                prev_hash = min_hash;
+            }
+        }
     }
 
     return read_hashes;

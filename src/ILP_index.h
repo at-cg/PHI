@@ -37,6 +37,9 @@
 // Gurobi
 #include "gurobi_c++.h"
 
+// Murmur3
+#include "src/murmur3.h"
+
 struct Anchor 
 {
     int32_t h;

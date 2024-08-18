@@ -10,7 +10,8 @@ src_dir := src
 
 OBJS = $(src_dir)/main.o $(src_dir)/gfa-io.o $(src_dir)/gfa-base.o \
 		$(src_dir)/options.o $(src_dir)/kalloc.o \
-		$(src_dir)/misc.o $(src_dir)/sys.o $(src_dir)/ILP_index.o
+		$(src_dir)/misc.o $(src_dir)/sys.o $(src_dir)/ILP_index.o \
+		$(src_dir)/murmur3.o
 
 AlphaASM: $(OBJS)
 	$(CXX) $^ -o $@ $(INLCLUDES) $(LIBS) $(CXXFLAGS)
