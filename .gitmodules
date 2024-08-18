@@ -1,0 +1,3 @@
+[submodule "ntHash"]
+	path = ntHash
+	url = https://github.com/bcgsc/ntHash

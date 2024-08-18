@@ -37,8 +37,8 @@
 // Gurobi
 #include "gurobi_c++.h"
 
-// Murmur3
-#include "src/murmur3.h"
+// ntHash
+#include "nthash/nthash.hpp"
 
 struct Anchor 
 {

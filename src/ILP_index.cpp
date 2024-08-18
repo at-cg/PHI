@@ -23,14 +23,16 @@ std::string reverse_strand(const std::string &kmer) {
     return rev_kmer;
 }
 
-uint64_t MurmurHash64(const void *key, int len, uint32_t seed) {
-    uint64_t hash[2];  // Array to hold the 128-bit hash (2 x 64-bit)
-    
-    // Generate the 128-bit hash using MurmurHash3_x64_128
-    MurmurHash3_x64_128(key, len, seed, hash);
-    
-    // Return the first 64 bits as the 64-bit hash value
-    return hash[0];
+uint64_t compute_ntHash(const std::string &seq, unsigned k) {
+    unsigned h = 1;  // We only need one hash value
+    nthash::NtHash nthash(seq, h, k);
+
+    // Roll the hash for the first k-mer
+    if (nthash.roll()) {
+        return nthash.hashes()[0];  // Return the first 64-bit hash value
+    }
+
+    return 0;  // In case the sequence is too short to generate any k-mers
 }
 
 void::ILP_index::read_gfa() 
@@ -372,8 +374,8 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap) {
         std::string kmer = haplotype.substr(i, k_mer);
         std::string rev_kmer = reverse_strand(kmer);
 
-        uint64_t fwd_hash = MurmurHash64(kmer.c_str(), kmer.size(), 0);
-        uint64_t rev_hash = MurmurHash64(rev_kmer.c_str(), rev_kmer.size(), 0);
+        uint64_t fwd_hash = compute_ntHash(kmer, k_mer);
+        uint64_t rev_hash = compute_ntHash(rev_kmer, k_mer);
 
         // Remove elements that are out of the current window
         if (!deq_fwd.empty() && deq_fwd.front().second <= i - window) {
@@ -469,8 +471,8 @@ std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq) {
         std::string kmer = read_seq.substr(i, k_mer);
         std::string rev_kmer = reverse_strand(kmer);
 
-        uint64_t fwd_hash = MurmurHash64(kmer.c_str(), kmer.size(), 0);
-        uint64_t rev_hash = MurmurHash64(rev_kmer.c_str(), rev_kmer.size(), 0);
+        uint64_t fwd_hash = compute_ntHash(kmer, k_mer);
+        uint64_t rev_hash = compute_ntHash(rev_kmer, k_mer);
 
         // Remove elements that are out of the current window
         if (!deq_fwd.empty() && deq_fwd.front().second <= i - window) {
@@ -649,7 +651,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
 
     #pragma omp parallel for num_threads(num_threads)
     for (int32_t r = 0; r < count_sp_r; r++) {
-        std::map<std::string, std::pair<int32_t, std::vector<std::pair<int32_t, std::vector<int32_t>>>>> Anchor_hits_map;
+        std::unordered_map<std::string, std::pair<int32_t, std::vector<std::pair<int32_t, std::vector<int32_t>>>>> Anchor_hits_map;
 
         for (int32_t h = 0; h < num_walks; h++) {
             for (int32_t k = 0; k < Anchor_hits[r][h].size(); k++) {
