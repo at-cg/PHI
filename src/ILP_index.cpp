@@ -554,13 +554,59 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     // Index the kmers
     std::cerr << "Number of Minimizers" << std::endl;
     std::vector<std::vector<std::pair<uint64_t, Anchor>>> kmer_index(num_walks);
+    std::vector<std::unordered_map<uint64_t, std::vector<int32_t>>> kmer_hist_per_hap(num_walks);
     #pragma omp parallel for num_threads(num_threads)
-    for (int32_t h = 0; h < num_walks; h++)
-    {
+    for (int32_t h = 0; h < num_walks; h++) {
         kmer_index[h] = index_kmers(h);
         std::string hap_name = hap_id2name[h];
         fprintf(stderr, "%s : %d\n", hap_name.c_str(), kmer_index[h].size());
+
+        auto& kmer_hist = kmer_hist_per_hap[h];  // Get the map for the current haplotype
+
+        for (const auto& minimizer : kmer_index[h]) {
+            // Check if the kmer is present in the current haplotype's kmer_hist
+            if (kmer_hist.find(minimizer.first) == kmer_hist.end() || (std::find(kmer_hist[minimizer.first].begin(), kmer_hist[minimizer.first].end(), h) == kmer_hist[minimizer.first].end())) {
+                kmer_hist[minimizer.first].push_back(h);
+            }
+        }
     }
+
+    // Merge kmer_hist_per_hap into a single map
+    std::unordered_map<uint64_t, std::vector<int32_t>> kmer_hist;
+    std::unordered_map<uint64_t, int32_t> uniqe_kmers;
+    for (const auto& hap_hist : kmer_hist_per_hap) {
+        for (const auto& entry : hap_hist) {
+            auto& global_vector = kmer_hist[entry.first];
+            global_vector.insert(global_vector.end(), entry.second.begin(), entry.second.end());
+            std::sort(global_vector.begin(), global_vector.end());
+            global_vector.erase(std::unique(global_vector.begin(), global_vector.end()), global_vector.end());
+            uniqe_kmers[entry.first]++;
+        }
+    }
+
+    std::vector<int32_t> kmer_hist_count(num_walks + 1, 0);
+    for (const auto& kmer : kmer_hist) {
+        kmer_hist_count[kmer.second.size()]++;
+    }
+
+    if (debug)
+    {
+        // plot the histogram [x, y] -> [number of haplotypes, number of kmers] with **** on the screen with two for loops
+        // print shared fraction of unique kmers by haplotypes
+        fprintf(stderr, "Shared fraction of unique kmers by haplotypes\n");
+        int32_t count_unique_kmers = uniqe_kmers.size();
+        int32_t sum_unique_kmers = 0;
+        for (int32_t i = 1; i <= num_walks; i++) {
+            // fprintf(stderr, "[%d, %.5f]\n", i, (float)kmer_hist_count[i]/(float)count_unique_kmers);
+            fprintf(stderr, "[Haplotypes: %d, fraction of unique shared kmers: %.5f]\n", i, (float)kmer_hist_count[i]/(float)count_unique_kmers);
+            sum_unique_kmers += kmer_hist_count[i];
+        }
+        assert(sum_unique_kmers == count_unique_kmers);
+    }
+    // free unnecessary memory
+    kmer_hist.clear();
+    kmer_hist_per_hap.clear();
+    kmer_hist_count.clear();
     fprintf(stderr, "[M::%s::%.3f*%.2f] Haplotypes sketched\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
     // Compute the anchors
