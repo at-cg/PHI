@@ -7,21 +7,14 @@ ILP_index::ILP_index(gfa_t *g) {
 
 KSEQ_INIT(gzFile, gzread)
 
-uint64_t fnv1a_hash_64(const std::string& str) {
-    // FNV-1a 64-bit parameters
-    const uint64_t FNV_prime = 0x100000001b3;
-    const uint64_t offset_basis = 0xcbf29ce484222325;
+uint64_t hash128_to_64(const std::string &str) {
+    uint64_t hash_output[2]; // To store the 128-bit output
 
-    // Initialize hash with offset basis
-    uint64_t hash = offset_basis;
+    // Hash the string using MurmurHash3_x64_128
+    MurmurHash3_x64_128(str.data(), str.length(), 0, hash_output);
 
-    // Process each byte of the string
-    for (char c : str) {
-        hash ^= static_cast<uint64_t>(c);
-        hash *= FNV_prime;
-    }
-
-    return hash;
+    // Combine the two 64-bit parts of the 128-bit hash into a single 64-bit hash
+    return hash_output[0] ^ hash_output[1]; // Simple XOR combination
 }
 
 void::ILP_index::read_gfa() 
@@ -363,148 +356,136 @@ std::string reverse_strand(std::string seq)
     return rev_seq;
 }
 
-std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap)
-{
+std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap) {
     std::vector<std::pair<uint64_t, Anchor>> kmer_index;
     std::string haplotype;
+
+    // Concatenate sequences in the path to form the haplotype
     for (size_t i = 0; i < paths[hap].size(); i++) {
         haplotype += node_seq[paths[hap][i]];
     }
-    // transform lower case letters to upper case
+
+    // Convert to uppercase
     std::transform(haplotype.begin(), haplotype.end(), haplotype.begin(), ::toupper);
+    size_t hap_size = haplotype.size();
 
-    if (haplotype.size() < window + k_mer - 1) return kmer_index;
+    if (hap_size < window + k_mer - 1) return kmer_index;
 
-    int32_t hap_size = haplotype.size();
+    // Precompute index to vertex map
     std::vector<int32_t> idx_vtx_map(hap_size, -1);
     int32_t count_idx = 0;
     for (size_t i = 0; i < paths[hap].size(); i++) {
         for (size_t j = 0; j < node_seq[paths[hap][i]].size(); j++) {
-            idx_vtx_map[count_idx] = paths[hap][i]; // base_idx -> vertex_idx
-            count_idx++;
+            idx_vtx_map[count_idx++] = paths[hap][i]; // base_idx -> vertex_idx
         }
     }
 
-    int32_t count_kmers = window + k_mer - 1;
-    
-    uint64_t prev_hash = 0;
-    for (int32_t i = 0; i <= haplotype.size() - count_kmers; i++) {
-        std::string fwd_kmer = std::string(k_mer, 'Z');
-        std::string rev_kmer = std::string(k_mer, 'Z');
-        int32_t start_idx_fwd = i;
-        int32_t start_idx_rev = i;
+    uint64_t prev_hash = UINT64_MAX; // Initialize to the maximum possible value
 
-        for (size_t j = i; j < i + window; j++) {
-            std::string kmer = haplotype.substr(j, k_mer);
-            std::string local_fwd_kmer = kmer;
-            std::string local_rev_kmer = reverse_strand(kmer);
+    // Deque to store k-mers and their positions
+    std::deque<std::pair<std::string, int32_t>> window_deque;
 
-            if (local_fwd_kmer < fwd_kmer) {
-                fwd_kmer = local_fwd_kmer;
-                start_idx_fwd = j;
-            }
+    for (int32_t i = 0; i <= hap_size - k_mer; ++i) {
+        // Extract the forward and reverse k-mers
+        std::string fwd_kmer = haplotype.substr(i, k_mer);
+        std::string rev_kmer = reverse_strand(fwd_kmer);
 
-            if (local_rev_kmer < rev_kmer) {
-                rev_kmer = local_rev_kmer;
-                start_idx_rev = j;
-            }
+        // Choose the lexicographically smallest k-mer
+        std::string min_kmer = std::min(fwd_kmer, rev_kmer);
+
+        // Remove elements from the back of the deque if they are larger than the current k-mer
+        while (!window_deque.empty() && window_deque.back().first >= min_kmer) {
+            window_deque.pop_back();
         }
 
-        if (fwd_kmer == rev_kmer) continue; // Cannonical k-mer
+        // Add current element at the back of the deque
+        window_deque.emplace_back(min_kmer, i);
 
-        uint64_t hash = fnv1a_hash_64(fwd_kmer);
-        int32_t start_idx = start_idx_fwd;
-
-        if (fwd_kmer > rev_kmer) {
-            hash = fnv1a_hash_64(rev_kmer);
-            start_idx = start_idx_rev;
+        // Remove elements from the front if they are out of the window
+        if (!window_deque.empty() && window_deque.front().second <= i - window) {
+            window_deque.pop_front();
         }
 
-        if (prev_hash == hash) continue; // Skip the same k-mer
-        prev_hash = hash; // handles first k-mer as well
+        // Process the minimizer once the window is fully populated
+        if (i >= window - 1) {  
+            std::string best_kmer = window_deque.front().first;
+            uint64_t best_hash = hash128_to_64(best_kmer.c_str());
+            if (best_hash != prev_hash) {
+                prev_hash = best_hash;
 
-        Anchor anchor;
-        anchor.h = hap;
-        std::unordered_set<int32_t> set;
-        std::vector<int32_t> unique_vtxs_vec;
-        for (size_t j = start_idx; j < start_idx + k_mer; j++) {
-            int32_t value = idx_vtx_map[j];
-            if (set.find(value) == set.end()) {
-                set.insert(value);
-                unique_vtxs_vec.push_back(value);
-            }
-            if (set.find(value) != set.end()) // value exists but not the previous one [cyclic case] 1 -> 3 -> 2 -> 3 -> 4
-            {
-                if (value != unique_vtxs_vec.back()) // not the same as the previous one
-                {
-                    unique_vtxs_vec.push_back(value);
+                // Create anchor
+                Anchor anchor;
+                anchor.h = hap;
+                std::unordered_set<int32_t> unique_vtx_set;
+                std::vector<int32_t> unique_vtxs_vec;
+
+                // Map k-mer positions to vertex indices
+                int32_t best_start_idx = window_deque.front().second;
+                for (int32_t j = best_start_idx; j < best_start_idx + k_mer; j++) {
+                    int32_t vtx_idx = idx_vtx_map[j];
+                    if (unique_vtx_set.insert(vtx_idx).second) {
+                        unique_vtxs_vec.push_back(vtx_idx);
+                    } else if (vtx_idx != unique_vtxs_vec.back()) {
+                        unique_vtxs_vec.push_back(vtx_idx);
+                    }
                 }
-            }
-        }
-        set.clear();
-        // push the anchor
-        for (auto v: unique_vtxs_vec) {
-            anchor.k_mers.push_back(v);
-        }
-        kmer_index.push_back(std::make_pair(hash, anchor));
-    }
 
-    bool only_unique = false;
-    if (only_unique)
-    {
-        std::map<uint64_t, Anchor> kmer_index_set;
-        for (auto kmer: kmer_index) {
-            kmer_index_set[kmer.first] = kmer.second;
-        }
-        kmer_index.clear();
-        for (auto kmer: kmer_index_set) {
-            kmer_index.push_back(kmer);
+                // Assign unique vertices to the anchor
+                anchor.k_mers = std::move(unique_vtxs_vec);
+                kmer_index.emplace_back(best_hash, anchor);
+            }
         }
     }
 
     return kmer_index;
 }
 
-std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq)
-{
-    // create upper case
+std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq) {
+    // Convert to uppercase
     std::transform(read_seq.begin(), read_seq.end(), read_seq.begin(), ::toupper);
-    // Find the minimizers in the read and match with the haplotype and return the anchors
+
     std::set<uint64_t> read_hashes;
-    int32_t count_kmers = window + k_mer - 1;
-    if (read_seq.size() < count_kmers) return read_hashes;
+    int32_t seq_size = read_seq.size();
+    if (seq_size < window + k_mer - 1) return read_hashes;
 
-    uint64_t prev_hash = 0;
-    for (int32_t i = 0; i <= read_seq.size() - count_kmers; i++) {
-        std::string fwd_kmer = std::string(k_mer, 'Z'); // ZZ...Z
-        std::string rev_kmer = std::string(k_mer, 'Z');
+    uint64_t prev_hash = UINT64_MAX; // Initialize to maximum possible value
 
-        for (size_t j = i; j < i + window; j++) {
-            std::string kmer = read_seq.substr(j, k_mer);
-            std::string local_fwd_kmer = kmer;
-            std::string local_rev_kmer = reverse_strand(kmer);
+    // Precompute the reverse complement of the entire sequence
+    std::string rev_seq = reverse_strand(read_seq);
 
-            if (local_fwd_kmer < fwd_kmer) {
-                fwd_kmer = local_fwd_kmer;
-            }
+    // Deque to store k-mers and their positions
+    std::deque<std::pair<std::string, int32_t>> window_deque;
 
-            if (local_rev_kmer < rev_kmer) {
-                rev_kmer = local_rev_kmer;
-            }
+    for (int32_t i = 0; i <= seq_size - k_mer; ++i) {
+        // Extract the forward and reverse k-mers
+        std::string fwd_kmer = read_seq.substr(i, k_mer);
+        std::string rev_kmer = rev_seq.substr(seq_size - i - k_mer, k_mer);
+
+        // Choose the lexicographically smallest k-mer
+        std::string min_kmer = std::min(fwd_kmer, rev_kmer);
+
+        // Remove elements from the back of the deque if they are larger than the current k-mer
+        while (!window_deque.empty() && window_deque.back().first >= min_kmer) {
+            window_deque.pop_back();
         }
 
-        if (fwd_kmer == rev_kmer) continue; // Cannonical k-mer
+        // Add current element at the back of the deque
+        window_deque.emplace_back(min_kmer, i);
 
-        uint64_t hash = fnv1a_hash_64(fwd_kmer);
-
-        if (fwd_kmer > rev_kmer) {
-            hash = fnv1a_hash_64(rev_kmer);
+        // Remove elements from the front if they are out of the window
+        if (!window_deque.empty() && window_deque.front().second <= i - window) {
+            window_deque.pop_front();
         }
 
-        if (prev_hash == hash) continue; // Skip the same k-mer
-        prev_hash = hash; // handles first k-mer as well
-
-        read_hashes.insert(hash);
+        // Only insert the hash if it is different from the previous hash
+        if (i >= window - 1) {  // Once we reach the window size
+            std::string best_kmer = window_deque.front().first;
+            uint64_t best_hash = hash128_to_64(best_kmer.c_str());
+            if (best_hash != prev_hash) {
+                read_hashes.insert(best_hash);
+                prev_hash = best_hash;
+            }
+        }
     }
 
     return read_hashes;

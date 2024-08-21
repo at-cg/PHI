@@ -36,6 +36,7 @@
 
 // Gurobi
 #include "gurobi_c++.h"
+#include "MurmurHash3.h"
 
 struct Anchor 
 {
