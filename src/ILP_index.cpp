@@ -423,12 +423,16 @@ std::vector<std::pair<uint64_t, Anchor>> ILP_index::index_kmers(int32_t hap) {
                 int32_t best_start_idx = window_deque.front().second;
                 for (int32_t j = best_start_idx; j < best_start_idx + k_mer; j++) {
                     int32_t vtx_idx = idx_vtx_map[j];
-                    if (unique_vtx_set.insert(vtx_idx).second) {
-                        unique_vtxs_vec.push_back(vtx_idx);
-                    } else if (vtx_idx != unique_vtxs_vec.back()) {
+                    if (unique_vtx_set.find(vtx_idx) == unique_vtx_set.end()) {
+                        unique_vtx_set.insert(vtx_idx);
                         unique_vtxs_vec.push_back(vtx_idx);
                     }
                 }
+
+                // sort this by topological order
+                std::sort(unique_vtxs_vec.begin(), unique_vtxs_vec.end(), [&](int32_t a, int32_t b) {
+                    return top_order_map[a] < top_order_map[b];
+                });
 
                 // Assign unique vertices to the anchor
                 anchor.k_mers = std::move(unique_vtxs_vec);
