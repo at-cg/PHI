@@ -694,9 +694,17 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             }
         }
 
-        // Check for all horizontal matches
-        for (const auto &anchor : Anchor_hits_map) {
-            if (anchor.second.first < threshold * num_walks) {
+        bool all_haps = false;
+        for (const auto &anchor : Anchor_hits_map)
+        {
+            if (anchor.second.first >= threshold * num_walks) {
+                all_haps = true;
+                break;
+            }
+        }
+
+        if (!all_haps) { // only keep the minimizer if any of its anchor is not shared by all the haplotypes
+            for (const auto &anchor : Anchor_hits_map) {
                 for (const auto &hap_anchor : anchor.second.second) {
                     Anchor_hits_1[r][hap_anchor.first].push_back(hap_anchor.second);
                 }
@@ -858,7 +866,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         }
 
         // print count_sp_r_ilp/count_sp_r * 100% kmer matches are in ilp 
-        fprintf(stderr, "[M::%s::%.3f*%.2f] %.2f%% Kmers are in ILP\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), (count_kmer_matches * 100.0) / count_sp_r);
+        fprintf(stderr, "[M::%s::%.3f*%.2f] %.2f%% Minimizers are in ILP\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0), (count_kmer_matches * 100.0) / count_sp_r);
 
         // clear memory
         for (int32_t i = 0; i < num_walks; i++)
@@ -868,7 +876,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         kmer_index.clear();
         Anchor_hits.clear();
 
-        fprintf(stderr, "[M::%s::%.3f*%.2f] Kmer constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
+        fprintf(stderr, "[M::%s::%.3f*%.2f] Minimizer constraints added to the model\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
 
         if (is_naive_exp)
         {
