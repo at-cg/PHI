@@ -673,6 +673,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     std::vector<std::vector<std::vector<std::vector<int32_t>>>> Anchor_hits_1(
     count_sp_r, std::vector<std::vector<std::vector<int32_t>>>(num_walks));
 
+    std::vector<int64_t> filtered_kmers_vec(num_threads, 0);
     #pragma omp parallel for num_threads(num_threads)
     for (int32_t r = 0; r < count_sp_r; r++) {
         std::map<std::string, std::pair<int32_t, std::vector<std::pair<int32_t, std::vector<int32_t>>>>> Anchor_hits_map;
@@ -709,6 +710,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     Anchor_hits_1[r][hap_anchor.first].push_back(hap_anchor.second);
                 }
             }
+        }else {
+            filtered_kmers_vec[omp_get_thread_num()] += 1;
         }
     }
 
@@ -716,6 +719,10 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     Anchor_hits = std::move(Anchor_hits_1);
     Anchor_hits_1.clear();
 
+    int64_t filtered_kmers = 0;
+    for (int32_t i = 0; i < num_threads; i++) filtered_kmers += filtered_kmers_vec[i];
+    int64_t retained_kmers = count_sp_r - filtered_kmers;
+    filtered_kmers_vec.clear();
     // find number of kmers
     std::cerr << "Number of Anchors" << std::endl;
     for (int32_t h = 0; h < num_walks; h++)
@@ -731,13 +738,12 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
     }
 
     // pritn num_kmers/num_kmers_tot * 100 % are part of the haplotype
-    fprintf(stderr, "[M::%s::%.3f*%.2f] Total/Filtered anchors: %d/%d, Fraction of anchors retained: %.4f\n",
+    fprintf(stderr, "[M::%s::%.3f*%.2f] Filtered/Retained Minimizers: %.2f/%.2f%\n",
         __func__, 
         realtime() - mg_realtime0, 
-        cputime() / (realtime() - mg_realtime0), 
-        num_kmers_tot, 
-        num_kmers_tot - num_kmers, 
-        (float)num_kmers / (float)num_kmers_tot);
+        cputime() / (realtime() - mg_realtime0),
+        (float)filtered_kmers/(float)count_sp_r * 100,
+        (float)retained_kmers/(float)count_sp_r * 100);
 
     std::vector<std::vector<int32_t>> in_nodes(n_vtx);
     for (int32_t i = 0; i < n_vtx; i++)

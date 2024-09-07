@@ -1,12 +1,12 @@
-#ifndef AlphaASM_H
-#define AlphaASM_H
+#ifndef PHI_H
+#define PHI_H
 
 #include <stdint.h>
 #include "gfa.h"
 #include <string>
 #include <vector>
 
-#define AlphaASM_VERSION "1.0"
+#define PHI_VERSION "1.0"
 
 typedef struct { uint64_t x, y; } mg128_t;
 typedef struct { size_t n, m; mg128_t *a; } mg128_v;

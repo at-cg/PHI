@@ -69,13 +69,13 @@ int main(int argc, char *argv[]) {
         else if (c == 'd') debug = atoi(o.arg);
         else if (c == 'h') help = 1;
         else if (c == 300) {
-            fprintf(fp_help, "AlphaASM version: %s\n", AlphaASM_VERSION);
+            fprintf(fp_help, "PHI version: %s\n", PHI_VERSION);
             return 0;
         }
 	}
 
 	if (argv[1] == NULL || opt.gfa_file == "" || opt.reads_file == "" || opt.hap_file == "" || help == 1 || fp_help == stdout) {
-		fprintf(fp_help, "Usage: AlphaASM -g <target.gfa> -r <reads.fa> -o <haplotype.fasta> \n");
+		fprintf(fp_help, "Usage: PHI -g <target.gfa> -r <reads.fa> -o <haplotype.fasta> \n");
 		fprintf(fp_help, "Options:\n");
 		fprintf(fp_help, "    -k INT       K-mer size (no larger than 28) [%d]\n", ipt.k);
 		fprintf(fp_help, "    -w INT       Minimizer window size [%d]\n", ipt.w);
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
 
 
     // Print runtime statistics
-    fprintf(stderr, "[M::%s] AlphaASM Version: %s\n", __func__, AlphaASM_VERSION);
+    fprintf(stderr, "[M::%s] PHI Version: %s\n", __func__, PHI_VERSION);
     fprintf(stderr, "[M::%s] CMD:", __func__);
 		for (i = 0; i < argc; ++i)
 			fprintf(stderr, " %s", argv[i]);

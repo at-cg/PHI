@@ -2,7 +2,7 @@
 #define MGPRIV_H
 
 #include <stdlib.h>
-#include "AlphaASM.h"
+#include "PHI.h"
 
 // by  GS
 #include <iostream>

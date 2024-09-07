@@ -4,7 +4,7 @@ GUROBI_HOME = /home/ghanshyam/opt/gurobi1101/linux64
 INLCLUDES = -I$(GUROBI_HOME)/include
 LIBS = -L$(GUROBI_HOME)/lib
 
-all: AlphaASM
+all: PHI
 
 src_dir := src
 
@@ -13,11 +13,11 @@ OBJS = $(src_dir)/main.o $(src_dir)/gfa-io.o $(src_dir)/gfa-base.o \
 		$(src_dir)/misc.o $(src_dir)/sys.o $(src_dir)/ILP_index.o \
 		$(src_dir)/MurmurHash3.o
 
-AlphaASM: $(OBJS)
+PHI: $(OBJS)
 	$(CXX) $^ -o $@ $(INLCLUDES) $(LIBS) $(CXXFLAGS)
 
 $(src_dir)/%.o: $(src_dir)/%.cpp
 	$(CXX) -c $< -o $@ $(INLCLUDES) $(LIBS) $(CXXFLAGS)
 
 clean:
-	rm -f $(src_dir)/*.o AlphaASM
+	rm -f $(src_dir)/*.o PHI
