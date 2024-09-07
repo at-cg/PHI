@@ -1,6 +1,6 @@
 # <div align="center">PHI</div>
 
-## <div align="center">Haplotype Reconstruction from Low Coverage Reads with Pangenome Graphs</div>
+## <div align="center">Pangenome-based Haplotype Inference</div>
 
 ## <a name="started"></a>Getting Started
 
@@ -8,10 +8,9 @@
 
 #### Before using PHI, ensure you have the following dependencies installed:
 
-1. **GCC 13 or later** - [GCC](https://gcc.gnu.org/)
+1. **GCC 9 or later** - [GCC](https://gcc.gnu.org/)
 2. **Zlib** - [zlib](https://zlib.net/)
-3. **Jemalloc** - [Jemalloc](https://github.com/jemalloc/jemalloc)
-4. **Gurobi** - [Gurobi](https://www.gurobi.com)
+3. **Gurobi** - [Gurobi](https://www.gurobi.com)
 
 ### Get PHI
 
