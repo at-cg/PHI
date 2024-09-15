@@ -1,4 +1,5 @@
-# <div align="center">PHI</div>
+<!-- # <div align="center">PHI</div> -->
+# <div align="center">$$\text{PHI (}\Phi \text{)}$$</div>
 
 ## <div align="center">Pangenome-based Haplotype Inference</div>
 
