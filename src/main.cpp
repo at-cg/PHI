@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
 	mg_mapopt_t opt;
 	mg_idxopt_t ipt;
     bool debug = false;
-    int32_t recombination = 50;
+    int32_t recombination = 100;
     int32_t is_qclp = 0;
     int32_t is_naive_exp = 0;
     float threshold = 1.0f;
@@ -77,12 +77,12 @@ int main(int argc, char *argv[]) {
 	if (argv[1] == NULL || opt.gfa_file == "" || opt.reads_file == "" || opt.hap_file == "" || help == 1 || fp_help == stdout) {
 		fprintf(fp_help, "Usage: PHI -g <target.gfa> -r <reads.fa> -o <haplotype.fasta> \n");
 		fprintf(fp_help, "Options:\n");
-		fprintf(fp_help, "    -k INT       K-mer size (no larger than 28) [%d]\n", ipt.k);
+		fprintf(fp_help, "    -k INT       K-mer size [%d]\n", ipt.k);
 		fprintf(fp_help, "    -w INT       Minimizer window size [%d]\n", ipt.w);
         fprintf(fp_help, "    -R INT       Recombination penalty [%d]\n", recombination);
         fprintf(fp_help, "    -q INT       Mode QCLP/ILP (default ILP i.e q0, use q1 for QCLP) [%d]\n", is_qclp);
-        fprintf(fp_help, "    -N INT       Mode OPT/Naive expanded graph (default Optimized i.e N0, use N1 for Naive) [%d]\n", is_naive_exp);
-        fprintf(fp_help, "    -T FLOAT     Threshold for kmer filtering [%.3f]\n", threshold);
+        // fprintf(fp_help, "    -N INT       Mode OPT/Naive expanded graph (default Optimized i.e N0, use N1 for Naive) [%d]\n", is_naive_exp);
+        fprintf(fp_help, "    -T FLOAT     Threshold for minimizer filtering [%.3f]\n", threshold);
         fprintf(fp_help, "    -t INT       Threads [%d]\n", opt.n_threads);
         fprintf(fp_help, "    -g INT       GFA file [%s]\n", opt.gfa_file.c_str());
         fprintf(fp_help, "    -r INT       Read [%s]\n", opt.reads_file.c_str());

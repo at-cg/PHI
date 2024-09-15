@@ -1166,7 +1166,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                                 GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
                                 vars[var_name_1] = var;
                             }
-                            vtx_expr += c_1 * vars[var_name_1];
+                            vtx_expr += (c_1/2) * vars[var_name_1];
 
                         }
                     }
@@ -1183,7 +1183,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                                 GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
                                 vars[var_name_2] = var;
                             }
-                            vtx_expr += c_1 * vars[var_name_2];
+                            vtx_expr += (c_1/2) * vars[var_name_2];
 
                         }
                     }
