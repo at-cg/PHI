@@ -2,9 +2,8 @@
   <img src="test/logo/logo_phi.png" alt="PHI Logo" width="200">
 </div>
 
-<!-- # <div align="center">PHI</div> -->
+## <div align="center"><span style="color:red;"><b>PHI</b></span> (<span style="color:red;"><b>P</b></span>angenome-based <span style="color:red;"><b>H</b></span>aplotype <span style="color:red;"><b>I</b></span>nference)</div>
 
-## <div align="center">PHI (Pangenome-based Haplotype Inference)</div>
 
 ## <a name="started"></a>Getting Started
 
