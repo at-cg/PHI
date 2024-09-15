@@ -1,7 +1,10 @@
-<!-- # <div align="center">PHI</div> -->
-# <div align="center">$$\Phi$$</div>
+<div align="center">
+  <img src="test/logo/logo_phi.png" alt="PHI Logo" width="200">
+</div>
 
-## <div align="center">Pangenome-based Haplotype Inference</div>
+<!-- # <div align="center">PHI</div> -->
+
+## <div align="center">PHI (Pangenome-based Haplotype Inference)</div>
 
 ## <a name="started"></a>Getting Started
 
