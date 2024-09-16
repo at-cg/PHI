@@ -14,8 +14,8 @@ cp ../../data/MHC-49_MC_out/MHC-49-MC.gfa.gz .
 gunzip MHC-49-MC.gfa.gz
 cat MHC-49-MC.gfa | grep "W" | awk 'BEGIN {OFS="\t"}; {print $2, $3}' > sample-info.tsv # get sample-info.tsv
 
-# source /global/homes/g/gs_atcg/.bashrc
-source /home/ghanshyam/.bashrc
+source /global/homes/g/gs_atcg/.bashrc
+# source /home/ghanshyam/.bashrc
 conda activate snakemake
 
 # use snakemake to prepare the VCF
