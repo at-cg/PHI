@@ -18,10 +18,10 @@ python3 -m pip install -U -r ./toil-requirement.txt
 
 # install additional dependencies
 cd bin && for i in wigToBigWig faToTwoBit bedToBigBed bigBedToBed axtChain pslPosTarget bedSort hgGcPercent mafToBigMaf hgLoadMafSummary hgLoadChain; do wget -q http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/${i}; chmod +x ${i}; done
-
+cd ..
 # install pangenometools
 mkdir -p build-tools
-cp ../downloadPangenomeTools build-tools/downloadPangenomeTools
+cp ../../downloadPangenomeTools build-tools/downloadPangenomeTools
 sh build-tools/downloadPangenomeTools
 
 echo "Cactus v2.9.0 installed successfully."

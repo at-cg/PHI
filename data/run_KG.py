@@ -52,7 +52,7 @@ def par_run_KAGE(read_cov_pair):
     cmd = (
         f"source ~/.bashrc && conda activate KAGE && "
         f"/usr/bin/time kage index -r {ref_file} -v {vcf_file} -o {temp_dir}/index -k 31 > {log_file} 2>&1 && "
-        f"/usr/bin/time kage genotype -i {temp_dir}/index -r {downsampled_read} --glimpse {vcf_file} -t {running_threads} --average-coverage {cov} -k 31 -o {temp_dir}/{read}_KG_genotyping.vcf >> {log_file} 2>&1 && kage free_memory && "
+        f"/usr/bin/time kage genotype -i {temp_dir}/index -r {downsampled_read} --glimpse {vcf_file} -t {running_threads} --average-coverage {cov} -k 31 -o {temp_dir}/{read}_KG_genotyping.vcf >> {log_file} 2>&1 && "
         f"bgzip {temp_dir}/{read}_KG_genotyping.vcf && "
         f"tabix -p vcf {temp_dir}/{read}_KG_genotyping.vcf.gz && "
         f"bcftools view -e 'GT=\"het\"' {temp_dir}/{read}_KG_genotyping.vcf.gz | bgzip > {temp_dir}/{read}_KG_genotyping_no_homo.vcf.gz && "

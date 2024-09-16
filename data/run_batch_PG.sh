@@ -10,4 +10,4 @@
 source /global/homes/g/gs_atcg/.bashrc
 
 # Run the program
-python3 run_PG.py -b 4
+python3 run_PG.py -b 2

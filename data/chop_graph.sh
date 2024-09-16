@@ -27,7 +27,7 @@ cp results/vcf/MC/MC_filtered_ids.vcf .
 # VCF file needs to be transformed such that no variants overlap each other using vcfbub
 vcfbub -l 0 -i MC_filtered_ids.vcf > MHC_49-MC.vcf
 # normalize the VCF file
-bcftools norm -m -any MHC_49-MC.vcf | bgzip > MHC_49-MC_norm.vcf.gz && tabix -p vcf MHC_49-MC_norm.vcf.gz
+vcfbub -l 0 -i MHC-49-MC.raw.vcf.gz | bcftools norm -m -any | bgzip > MHC_49-MC_norm.vcf.gz && tabix -p vcf MHC_49-MC_norm.vcf.gz
 
 # copy VCF files to the data folder
 cp MHC_49-MC_norm.vcf.gz ../../data/
