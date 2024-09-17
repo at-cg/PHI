@@ -50,7 +50,7 @@ os.system("sh install_cactus.sh")
 if os.path.exists("js"):
     os.system("rm -rf js")
 
-os.system("source data/cactus-bin-v2.9.0/venv-cactus-v2.9.0/bin/activate && cactus-pangenome ./js MHC.seqfile --outDir ./data/MHC-49_MC_out --outName MHC-49-MC  --reference CHM13.0 --vcf --vcfwave --maxCores 48 --indexCores 32 --mapCores 8 --batchSystem single_machine")
+os.system("source data/cactus-bin-v2.9.0/venv-cactus-v2.9.0/bin/activate && cactus-pangenome ./js MHC.seqfile --outDir ./data/MHC-49_MC_out --outName MHC-49-MC  --reference CHM13.0 --vcf --maxCores 48 --indexCores 32 --mapCores 8 --batchSystem single_machine")
 # move GFA files to data folder
 os.system("sh chop_graph.sh") # chop the nodes into smaller pieces
 

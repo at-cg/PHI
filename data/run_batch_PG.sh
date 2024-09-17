@@ -10,4 +10,4 @@
 source ${HOME}/.bashrc
 
 # Run the program
-python3 run_PG.py -b 2
+python3 run_PG.py -b 4
