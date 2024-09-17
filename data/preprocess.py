@@ -91,7 +91,7 @@ mean_read_length = {}
 
 for read in reads:
     # use seqkit to get the mean read length
-    output = subprocess.check_output(f"seqkit stats data/reads/{read}.fastq", shell=True).decode('utf-8').strip()
+    output = subprocess.check_output(f"source ~/.bashrc && seqkit stats data/reads/{read}.fastq", shell=True).decode('utf-8').strip()
     # Split the output into lines and extract the mean read length
     lines = output.splitlines()
     stats_line = lines[1]  # the second line contains the statistics for the fastq file
@@ -104,7 +104,7 @@ for read in reads:
         if (cov == 15):
             count_reads = 1000000000 # use all the available reads
         seed = random.randint(1, 10000)
-        os.system(f"seqkit sample -s {seed} -n {count_reads} data/reads/{read}.fastq > data/reads_downsampled/{read}_{cov}x.fastq")
+        os.system(f"source ~/.bashrc && seqkit sample -s {seed} -n {count_reads} data/reads/{read}.fastq > data/reads_downsampled/{read}_{cov}x.fastq")
 
 # Preprocess done
 time_end = time.time()
