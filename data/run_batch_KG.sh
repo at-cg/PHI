@@ -7,7 +7,7 @@
 #SBATCH --output=Batch_KG.log
 #SBATCH --error=Batch_KG.log
 
-source /global/homes/g/gs_atcg/.bashrc
+source ${HOME}/.bashrc
 
 # Run the program
 python3 run_KG.py -b 2

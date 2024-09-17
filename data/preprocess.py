@@ -6,6 +6,7 @@ import argparse
 import multiprocessing
 import time
 import subprocess
+import random
 
 nthreads = 4
 
@@ -49,7 +50,7 @@ os.system("sh install_cactus.sh")
 if os.path.exists("js"):
     os.system("rm -rf js")
 
-os.system("source data/cactus-bin-v2.9.0/venv-cactus-v2.9.0/bin/activate && cactus-pangenome ./js MHC.seqfile --outDir ./data/MHC-49_MC_out --outName MHC-49-MC  --reference CHM13.0 --vcf --maxCores 48 --indexCores 32 --mapCores 8 --batchSystem single_machine")
+os.system("source data/cactus-bin-v2.9.0/venv-cactus-v2.9.0/bin/activate && cactus-pangenome ./js MHC.seqfile --outDir ./data/MHC-49_MC_out --outName MHC-49-MC  --reference CHM13.0 --vcf --vcfwave --maxCores 48 --indexCores 32 --mapCores 8 --batchSystem single_machine")
 # move GFA files to data folder
 os.system("sh chop_graph.sh") # chop the nodes into smaller pieces
 
@@ -88,12 +89,13 @@ if not os.path.exists("data/reads_downsampled"):
 
 mean_read_length = {}
 
-# get mean read length
 for read in reads:
-    # use seqtk to get the mean read length
-    # use seqtk to get the mean read length
-    output = subprocess.check_output(f"seqtk fqchk data/reads/{read}.fastq", shell=True).decode('utf-8').strip()
-    avg_len = float(output.split(';')[2].split(':')[1].strip())
+    # use seqkit to get the mean read length
+    output = subprocess.check_output(f"seqkit stats data/reads/{read}.fastq", shell=True).decode('utf-8').strip()
+    # Split the output into lines and extract the mean read length
+    lines = output.splitlines()
+    stats_line = lines[1]  # the second line contains the statistics for the fastq file
+    avg_len = float(stats_line.split()[6])  # the 7th column contains the average read length
     mean_read_length[read] = avg_len
 
 for read in reads:
@@ -101,7 +103,8 @@ for read in reads:
         count_reads = int(cov * 5000000 / mean_read_length[read])
         if (cov == 15):
             count_reads = 1000000000 # use all the available reads
-        os.system("seqtk sample -s100 data/reads/" + read + ".fastq " + str(count_reads) + " > data/reads_downsampled/" + read + "_" + str(cov) + "x.fastq")
+        seed = random.randint(1, 10000)
+        os.system(f"seqkit sample -s {seed} -n {count_reads} data/reads/{read}.fastq > data/reads_downsampled/{read}_{cov}x.fastq")
 
 # Preprocess done
 time_end = time.time()

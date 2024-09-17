@@ -17,7 +17,7 @@ time_start = time.time()
 # Pass threads from argument; if there is no argument, print the usage
 if len(sys.argv) > 1:
     parser = argparse.ArgumentParser(description='Run KAGE on reads')
-    parser.add_argument('-b', '--batches', type=int, help='Number of threads to use for processing')
+    parser.add_argument('-b', '--batches', type=int, help='Number of batches to use for processing')
     args = parser.parse_args()
     nbatches = args.batches
 else:
@@ -42,7 +42,7 @@ def par_run_KAGE(read_cov_pair):
     ref_file = "data/hprc_haps/MHC-CHM13.0.fa"
     vcf_file = "data/MHC_49-MC_norm.vcf.gz"
     
-    temp_dir = f"temp_{read}_{cov}"
+    temp_dir = f"temp_{read}_{cov}_KG"
     os.makedirs(temp_dir, exist_ok=True)
 
     log_file = f"{output_prefix}.log"
@@ -58,6 +58,7 @@ def par_run_KAGE(read_cov_pair):
         f"bcftools view -e 'GT=\"het\"' {temp_dir}/{read}_KG_genotyping.vcf.gz | bgzip > {temp_dir}/{read}_KG_genotyping_no_homo.vcf.gz && "
         f"tabix -p vcf {temp_dir}/{read}_KG_genotyping_no_homo.vcf.gz && "
         f"bcftools norm -m +any {temp_dir}/{read}_KG_genotyping_no_homo.vcf.gz | "
+        f"zcat {temp_dir}/{read}_KG_genotyping_no_homo.vcf.gz | "
         f"bgzip > {temp_dir}/temp_filtered.vcf.gz && "
         f"tabix -p vcf {temp_dir}/temp_filtered.vcf.gz && "
         f"bcftools consensus -f {ref_file} -o {output_prefix}.fa {temp_dir}/temp_filtered.vcf.gz && "

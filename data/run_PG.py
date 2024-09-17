@@ -17,7 +17,7 @@ time_start = time.time()
 # Pass threads from argument; if there is no argument, print the usage
 if len(sys.argv) > 1:
     parser = argparse.ArgumentParser(description='Run PanGenie on reads')
-    parser.add_argument('-b', '--batches', type=int, help='Number of threads to use for processing')
+    parser.add_argument('-b', '--batches', type=int, help='Number of batches to use for processing')
     args = parser.parse_args()
     nbatches = args.batches
 else:
@@ -42,7 +42,7 @@ def par_run_PanGenie(read_cov_pair):
     ref_file = "data/hprc_haps/MHC-CHM13.0.fa"
     vcf_file = "data/MHC_49-MC.vcf"
     
-    temp_dir = f"temp_{read}_{cov}"
+    temp_dir = f"temp_{read}_{cov}_PG"
     os.makedirs(temp_dir, exist_ok=True)
 
     log_file = f"{output_prefix}.log"
@@ -62,6 +62,9 @@ def par_run_PanGenie(read_cov_pair):
         f"bcftools consensus -f {ref_file} -o {output_prefix}.fa {temp_dir}/temp_filtered.vcf.gz && "
         f"edlib-aligner {ground_truth} {output_prefix}.fa >> {log_file}"
     )
+
+
+
     os.system(cmd)
 
     # Clean up temporary directory

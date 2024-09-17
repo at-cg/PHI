@@ -7,7 +7,7 @@
 #SBATCH --output=Batch_PG.log
 #SBATCH --error=Batch_PG.log
 
-source /global/homes/g/gs_atcg/.bashrc
+source ${HOME}/.bashrc
 
 # Run the program
 python3 run_PG.py -b 2

@@ -17,7 +17,7 @@ time_start = time.time()
 # pass threads from argument; if there is no argument, print the usage
 if len(sys.argv) > 1:
     parser = argparse.ArgumentParser(description='Preprocess data')
-    parser.add_argument('-b', '--batches', type=int, help='Number of threads to use for preprocessing')
+    parser.add_argument('-b', '--batches', type=int, help='Number of batches to use for preprocessing')
     args = parser.parse_args()
     nbatches = args.batches
 else:

@@ -7,7 +7,7 @@
 #SBATCH --output=Batch_2.log
 #SBATCH --error=Batch_2.log
 
-source /global/homes/g/gs_atcg/.bashrc
+source ${HOME}/.bashrc
 
 # Run the program
 python3 run_batch_2.py -b 2

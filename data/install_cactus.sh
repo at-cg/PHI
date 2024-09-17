@@ -18,6 +18,8 @@ python3 -m pip install -U -r ./toil-requirement.txt
 
 # install additional dependencies
 cd bin && for i in wigToBigWig faToTwoBit bedToBigBed bigBedToBed axtChain pslPosTarget bedSort hgGcPercent mafToBigMaf hgLoadMafSummary hgLoadChain; do wget -q http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/${i}; chmod +x ${i}; done
+conda activate vcflib
+ln -s $(which vcfwave) vcfwave
 cd ..
 # install pangenometools
 mkdir -p build-tools
