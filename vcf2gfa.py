@@ -41,7 +41,7 @@ def main(vcf, ref):
     decompress_file(ref, temp_ref)
 
     # Update VCF and Reference, changing CHM13#0 -> REF#0
-    run_command(f"awk 'BEGIN {{OFS=\"\\t\"}}; NR>1 && $1 !~ /^#/ {{sub(/^CHM13#0#0/, \"REF#0\", $1)}}1' {temp_vcf} | bgzip > {temp_vcf_bgzipped} && tabix -f -p vcf {temp_vcf_bgzipped}")
+    run_command(f"awk 'BEGIN {{OFS=\"\\t\"}}; $1 == \"#CHROM\" {{found=1}} found && NR>1 && $1 !~ /^#/ {{sub($1, \"REF#0\", $1)}}1' {temp_vcf} | bgzip > {temp_vcf_bgzipped} && tabix -f -p vcf {temp_vcf_bgzipped}")
     run_command(f"awk '/^>/ {{$0=\">REF#0\"}} {{print}}' {temp_ref} > REF.fasta")
     run_command("samtools faidx REF.fasta")
 
