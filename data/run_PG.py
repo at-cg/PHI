@@ -56,14 +56,9 @@ def par_run_PanGenie(read_cov_pair):
         f"tabix -p vcf {temp_dir}/{read}_PG_genotyping.vcf.gz && "
         f"bcftools view -e 'GT=\"het\"' {temp_dir}/{read}_PG_genotyping.vcf.gz | bgzip > {temp_dir}/{read}_PG_genotyping_no_homo.vcf.gz && "
         f"tabix -p vcf {temp_dir}/{read}_PG_genotyping_no_homo.vcf.gz && "
-        f"bcftools norm -m +any {temp_dir}/{read}_PG_genotyping_no_homo.vcf.gz | "
-        f"bgzip > {temp_dir}/temp_filtered.vcf.gz && "
-        f"tabix -p vcf {temp_dir}/temp_filtered.vcf.gz && "
-        f"bcftools consensus -f {ref_file} -o {output_prefix}.fa {temp_dir}/temp_filtered.vcf.gz && "
+        f"bcftools consensus -f {ref_file} -o {output_prefix}.fa {temp_dir}/{read}_PG_genotyping_no_homo.vcf.gz && "
         f"edlib-aligner {ground_truth} {output_prefix}.fa >> {log_file}"
     )
-
-
 
     os.system(cmd)
 

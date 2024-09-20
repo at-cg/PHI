@@ -32,3 +32,24 @@ bcftools norm -m -any MHC_49-MC.vcf | bgzip > MHC_49-MC_norm.vcf.gz && tabix -p 
 cp MHC_49-MC_norm.vcf.gz ../../data/
 cp MHC_49-MC_norm.vcf.gz.tbi ../../data/
 cp MHC_49-MC.vcf ../../data/
+
+cd ../../ # data folder
+
+source ~/.bashrc
+
+VCF=data/MHC_49-MC.vcf
+REF=data/hprc_haps/MHC-CHM13.0.fa
+awk 'BEGIN {OFS="\t"} {if ($1 == "0") $1 = "CHM13#0"; print $0}' $VCF | bgzip  > MHC_49-MC_.vcf.gz && tabix -f -p vcf MHC_49-MC_.vcf.gz
+awk '/^>/ {$0=">CHM13#0"} {print}'  $REF > REF.fasta
+samtools faidx REF.fasta
+
+vg construct -v MHC_49-MC_.vcf.gz -r REF.fasta -aS -p > X.xg
+vg gbwt -x X.xg -v MHC_49-MC_.vcf.gz -o X.gbwt
+vg gbwt -x X.xg -E -o X.paths.gbwt
+vg gbwt -m X.gbwt X.paths.gbwt -o X.combined.gbwt
+vg gbwt -x X.xg X.combined.gbwt --gbz-format -g X.gbz
+gfa2gbwt -d X -p -m 30 && mv X.gfa data/MHC_49-MC_30_2.gfa
+
+rm REF.fasta*
+rm MHC_49-MC_.vcf.gz*
+rm X.*
