@@ -32,8 +32,8 @@ for read in reads:
             real_time_match = re.search(r'total wallclock time:\s+(\d+\.\d+)\s+sec', log_data)
             real_time = float(real_time_match.group(1)) if real_time_match else None
 
-            # Extract peak RSS (look for "Total maximum memory usage")
-            peak_rss_match = re.search(r'Total maximum memory usage:\s+(\d+\.\d+)\s+GB', log_data)
+            # Extract peak RSS (look for "Max RSS")
+            peak_rss_match = re.search(r'Max RSS:\s+(\d+\.\d+)\s+GB', log_data)
             peak_rss = float(peak_rss_match.group(1)) if peak_rss_match else None
 
             # Extract edit distance

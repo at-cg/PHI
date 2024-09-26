@@ -19,7 +19,7 @@ os.makedirs(output_dir, exist_ok=True)
 for read in reads:
     data[read] = {}
     for cov in coverage:
-        hap_id = f'rec_hap_{read}_{cov}x_2_ilp'
+        hap_id = f'rec_hap_{read}_{cov}x_ilp'
         log_file = f'{output_dir}{hap_id}.log'
         if os.path.exists(log_file):
             with open(log_file, 'r') as file:
@@ -61,13 +61,13 @@ for read in reads:
 for read in reads:
     table = []
     for cov in coverage:
-        hap_id = f'rec_hap_{read}_{cov}x_2_ilp'
+        hap_id = f'rec_hap_{read}_{cov}x_ilp'
         table.append([hap_id] + data[read][hap_id])
     print(f"Read: {read}")
     print(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
     print('\n\n')
     # Save the table to a file as text
-    with open(f'{output_dir}stats_{read}_3.txt', 'w') as file:
+    with open(f'{output_dir}stats_{read}_4.txt', 'w') as file:
         file.write(f"Read: {read}\n")
         file.write(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
         file.write('\n\n')
