@@ -23,9 +23,9 @@ cd PHI
 make GUROBI_HOME=/path/to/gurobo_home (i.e. /opt/gurobi1101/linux64)
 
 # test run with ILP
-./PHI -t32 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
+./PHI -t32 -q0 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
 
-# test run with QP
+# test run with IQP (default)
 ./PHI -t32 -q1 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
 
 # test run with vcf and reference
@@ -34,10 +34,12 @@ make GUROBI_HOME=/path/to/gurobo_home (i.e. /opt/gurobi1101/linux64)
 ```
 
 ## Description
-PHI is a tool designed to reconstruct haploid haplotypes from low-coverage short reads. It supports two formulations:
+PHI is a tool designed to reconstruct haploid haplotypes from low-coverage short reads using a haplotype-aware pangenome graph represented as a Directed Acyclic Graph (DAG). Additionally, a VCF file and a reference genome against which the VCF was built can be used with the script `vcf2gfa.py` to generate a pangenome graph as input. PHI uses short reads to reconstruct haploid haplotypes through two methods:
 
-1. **Integer Linear Programming (ILP)**: This formulation can be enabled by passing the `-q0` flag.
-2. **Integer Quadratic Programming (IQP)**: This formulation can be enabled by passing the `-q1` flag.
+1. **Integer Linear Programming (ILP)**: Enabled by passing the `-q0` flag. This uses an ILP-based formulation.
+2. **Integer Quadratic Programming (IQP)**: Enabled by passing the `-q1` flag, this is the default method and uses an IQP-based formulation.
+
+The details of these formulations are described in our [paper](#publications).
 
 ## Results
 (Results will be added later)
