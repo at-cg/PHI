@@ -1,0 +1,74 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Load the CSV files from current directory paths
+df_pan_genie = pd.read_csv('PanGenie.csv', index_col=0)
+df_kage = pd.read_csv('KAGE.csv', index_col=0)
+df_phi = pd.read_csv('PHI.csv', index_col=0)
+
+# Coverage levels and tools
+coverages = ['0.1x', '0.5x', '1x', '2x', '5x', '10x', '15x']
+last_cov = ['16.26x', '12.91x', '18.20x', '12.85x', '15.04x']
+
+# Function to extract the edit distance for a given tool, coverage, and read
+def get_edit_distance(df, read, coverage):
+    return int(df.loc[read, coverage].split(', ')[-1][:-1])
+
+# Plotting bar plots
+fig, axes = plt.subplots(nrows=5, ncols=1, figsize=(8, 10))
+
+reads = df_pan_genie.index
+
+# Define y-ticks to ensure all powers of 10 are included
+y_ticks = np.arange(1, 7, 1)
+
+# Alphabet labels for subplots
+alphabet_labels = ['(A)', '(B)', '(C)', '(D)', '(E)']
+
+# Plot each read separately
+for i, read in enumerate(reads):
+    # Extracting edit distances for each coverage level and tool
+    edit_distances_phi = [get_edit_distance(df_phi, read, coverage) for coverage in coverages]
+    edit_distances_pan_genie = [get_edit_distance(df_pan_genie, read, coverage) for coverage in coverages]
+    edit_distances_kage = [get_edit_distance(df_kage, read, coverage) for coverage in coverages]
+    
+    # Convert to log10 scale
+    edit_distances_phi_log = np.log10(edit_distances_phi)
+    edit_distances_pan_genie_log = np.log10(edit_distances_pan_genie)
+    edit_distances_kage_log = np.log10(edit_distances_kage)
+    
+    # X-axis positions
+    x = np.arange(len(coverages))
+    width = 0.2  # Bar width
+    
+    # Plot bars for each tool at different positions
+    axes[i].bar(x - width, edit_distances_phi_log, width, label='PHI', zorder=3)
+    axes[i].bar(x, edit_distances_pan_genie_log, width, label='PanGenie', zorder=3)
+    axes[i].bar(x + width, edit_distances_kage_log, width, label='KAGE', zorder=3)
+    
+    axes[i].set_ylabel('Edit Distance', fontsize=10)
+    axes[i].set_xticks(x)
+    
+    # Adjust the x-tick labels for the last coverage
+    new_cov = [last_cov[i] if cov == '15x' else cov for cov in coverages]
+    axes[i].set_xticklabels(new_cov)
+    axes[i].set_yticks(y_ticks)
+    axes[i].set_yticklabels([f'$10^{int(tick)}$' for tick in y_ticks])
+    axes[i].set_xlabel('Coverage')
+    axes[i].grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
+    
+    # Add the title inside the bar plot
+    axes[i].set_title(f'{alphabet_labels[i]} {read}', fontsize=10, loc='center')
+
+axes[-1].set_xlabel('Coverage')
+
+# Adding the legend at the top of the first plot
+handles, labels = axes[0].get_legend_handles_labels()
+fig.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.01), fontsize=10)
+
+# Adjust layout to add space between plots and ensure labels are visible
+plt.subplots_adjust(hspace=0.5)
+plt.tight_layout(rect=[0, 0, 1, 0.98])
+
+plt.savefig('edit_distances.pdf', format='pdf', bbox_inches='tight', dpi=1200)

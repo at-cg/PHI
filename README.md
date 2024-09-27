@@ -14,6 +14,8 @@
 1. **GCC 9 or later** - [GCC](https://gcc.gnu.org/)
 2. **Zlib** - [zlib](https://zlib.net/)
 3. **Gurobi** - [Gurobi](https://www.gurobi.com)
+4. **VG Toolkit** - [vg](https://github.com/vgteam/vg)
+5. **GBWTGraph** - [gfa2gbwt](https://github.com/jltsiren/gbwtgraph)
 
 ### Get PHI
 
