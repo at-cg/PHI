@@ -6,6 +6,7 @@ import numpy as np
 df_pan_genie = pd.read_csv('PanGenie.csv', index_col=0)
 df_kage = pd.read_csv('KAGE.csv', index_col=0)
 df_phi = pd.read_csv('PHI.csv', index_col=0)
+df_vg = pd.read_csv('VG.csv', index_col=0)
 
 # Coverage levels and tools
 coverages = ['0.1x', '0.5x', '1x', '2x', '5x', '10x', '15x']
@@ -32,20 +33,23 @@ for i, read in enumerate(reads):
     edit_distances_phi = [get_edit_distance(df_phi, read, coverage) for coverage in coverages]
     edit_distances_pan_genie = [get_edit_distance(df_pan_genie, read, coverage) for coverage in coverages]
     edit_distances_kage = [get_edit_distance(df_kage, read, coverage) for coverage in coverages]
+    edit_distances_vg = [get_edit_distance(df_vg, read, coverage) for coverage in coverages]
     
     # Convert to log10 scale
     edit_distances_phi_log = np.log10(edit_distances_phi)
     edit_distances_pan_genie_log = np.log10(edit_distances_pan_genie)
     edit_distances_kage_log = np.log10(edit_distances_kage)
+    edit_distances_vg_log = np.log10(edit_distances_vg)
     
     # X-axis positions
     x = np.arange(len(coverages))
-    width = 0.2  # Bar width
+    width = 0.15  # Adjusted bar width for additional plot
     
     # Plot bars for each tool at different positions
-    axes[i].bar(x - width, edit_distances_phi_log, width, label='PHI', zorder=3)
-    axes[i].bar(x, edit_distances_pan_genie_log, width, label='PanGenie', zorder=3)
-    axes[i].bar(x + width, edit_distances_kage_log, width, label='KAGE', zorder=3)
+    axes[i].bar(x - 1.5*width, edit_distances_phi_log, width, label='PHI', zorder=3)
+    axes[i].bar(x - 0.5*width, edit_distances_pan_genie_log, width, label='PanGenie', zorder=3)
+    axes[i].bar(x + 0.5*width, edit_distances_kage_log, width, label='KAGE', zorder=3)
+    axes[i].bar(x + 1.5*width, edit_distances_vg_log, width, label='VG', zorder=3)
     
     axes[i].set_ylabel('Edit Distance', fontsize=10)
     axes[i].set_xticks(x)
@@ -65,7 +69,7 @@ axes[-1].set_xlabel('Coverage')
 
 # Adding the legend at the top of the first plot
 handles, labels = axes[0].get_legend_handles_labels()
-fig.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.01), fontsize=10)
+fig.legend(handles, labels, loc='upper center', ncol=4, bbox_to_anchor=(0.5, 1.01), fontsize=10)
 
 # Adjust layout to add space between plots and ensure labels are visible
 plt.subplots_adjust(hspace=0.5)

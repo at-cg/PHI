@@ -40,7 +40,7 @@ for read in reads:
 
             # Extract peak RSS (look for "Maximum resident set size")
             peak_rss_match = re.search(r'Maximum resident set size \(kbytes\):\s+(\d+)', log_data)
-            peak_rss = float(peak_rss_match.group(1)) / 1024 if peak_rss_match else None  # Convert kB to GB
+            peak_rss = float(peak_rss_match.group(1)) / (1024 * 1024) if peak_rss_match else None  # Convert kB to GB
 
             # Extract edit distance
             edit_distance_match = re.search(r'#0:\s+(\d+)\s+', log_data)
