@@ -49,6 +49,7 @@ vg gbwt -x X.xg -E -o X.paths.gbwt
 vg gbwt -m X.gbwt X.paths.gbwt -o X.combined.gbwt
 vg gbwt -x X.xg X.combined.gbwt --gbz-format -g X.gbz
 gfa2gbwt -d X -p -m 30 && mv X.gfa data/MHC_49-MC_30_2.gfa
+cp X.gbz data/MHC_49-MC_30.gbz
 
 rm REF.fasta*
 rm MHC_49-MC_.vcf.gz*
