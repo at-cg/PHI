@@ -15,16 +15,15 @@ def parse_tuple_string(tuple_string):
 phi_data = pd.read_csv('PHI.csv')
 phi_ilp_data = pd.read_csv('PHI_ilp.csv')
 
-# Define coverage labels
-coverage = ['0.1x', '0.5x', '1x', '2x', '5x', '10x', '15x']
-last_cov = ['16.26x', '12.91x', '18.20x', '12.85x', '15.04x']
+# Define coverage labels (excluding "15x")
+coverage = ['0.1x', '0.5x', '1x', '2x', '5x', '10x']
 
 # Extract legend labels from the first column of the CSV
 legend_labels = phi_data.iloc[:, 0]
 
 # Parse the CSV columns to extract runtime and memory
-phi_data_parsed = phi_data.iloc[:, 1:].applymap(parse_tuple_string)
-phi_ilp_data_parsed = phi_ilp_data.iloc[:, 1:].applymap(parse_tuple_string)
+phi_data_parsed = phi_data.iloc[:, 1:len(coverage) + 1].applymap(parse_tuple_string)
+phi_ilp_data_parsed = phi_ilp_data.iloc[:, 1:len(coverage) + 1].applymap(parse_tuple_string)
 
 # Extract runtime and memory separately
 phi_runtime = phi_data_parsed.applymap(lambda x: x[0]) / 3600  # Convert runtime to hours
@@ -32,15 +31,19 @@ phi_ilp_runtime = phi_ilp_data_parsed.applymap(lambda x: x[0]) / 3600  # Convert
 phi_rss = phi_data_parsed.applymap(lambda x: x[1])
 phi_ilp_rss = phi_ilp_data_parsed.applymap(lambda x: x[1])
 
+# Calculate maximum y-limits for side-by-side plots
+max_runtime = max(phi_runtime.max().max(), phi_ilp_runtime.max().max())
+max_rss = max(phi_rss.max().max(), phi_ilp_rss.max().max())
+
 # Plot configuration
 fig, axes = plt.subplots(2, 2, figsize=(10, 6))
 
 # Data to plot and corresponding y-axis labels
-plot_data = [(phi_runtime, 'Runtime (hours)'), (phi_ilp_runtime, 'Runtime (hours)'),
-             (phi_rss, 'Peak RSS (GB)'), (phi_ilp_rss, 'Peak RSS (GB)')]
+plot_data = [(phi_ilp_runtime, 'Runtime (hours)'), (phi_runtime, None),
+             (phi_ilp_rss, 'Memory Usage (GB)'), (phi_rss, None)]
 
 # Titles for each subplot
-titles = ['(A) IQP Runtime', '(B) ILP Runtime', '(C) IQP Memory Usage', '(D) ILP Memory Usage']
+titles = ['(A) ILP Runtime', '(B) IQP Runtime', '(C) ILP Memory Usage', '(D) IQP Memory Usage']
 
 # Width of the bars
 bar_width = 0.15
@@ -53,15 +56,20 @@ for ax, (data, ylabel), title in zip(axes.flatten(), plot_data, titles):
     
     ax.set_title(title, fontsize=13)
     ax.set_xlabel('Coverage', fontsize=13)
-    ax.set_ylabel(ylabel, fontsize=13)
     ax.set_xticks(x_indices + bar_width * (len(legend_labels) / 2 - 0.5))
-    
-    # Adjust the x-tick labels for the last coverage
-    new_cov = ["Total" if cov == '15x' else cov for cov in coverage]
-    ax.set_xticklabels(new_cov, fontsize=13)
+    ax.set_xticklabels(coverage, fontsize=13)
     ax.grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
-    # set ytikcs fonts to 12
     ax.tick_params(axis='y', labelsize=13)
+
+    # Set y-axis limits based on max values
+    if 'Runtime' in title:
+        ax.set_ylim(0, max_runtime * 1.1)  # Add 10% buffer to max
+    else:
+        ax.set_ylim(0, max_rss * 1.1)
+    
+    # Only add y-axis labels to left plots
+    if ylabel is not None:
+        ax.set_ylabel(ylabel, fontsize=13)
 
 # Set the overall legend at the top
 fig.legend(legend_labels, loc='upper center', ncol=5, fontsize=13)
