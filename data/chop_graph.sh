@@ -48,17 +48,25 @@ vg gbwt -x X.xg -v MHC_49-MC_.vcf.gz -o X.gbwt
 vg gbwt -x X.xg -E -o X.paths.gbwt
 vg gbwt -m X.gbwt X.paths.gbwt -o X.combined.gbwt
 vg gbwt -x X.xg X.combined.gbwt --gbz-format -g X.gbz
+ignore_genomes=$(python get_ids.py 23)
+vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes} --gbz-format -g X3.gbz
+ignore_genomes=$(python get_ids.py 21)
+vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes} --gbz-format -g X7.gbz
 ignore_genomes=$(python get_ids.py 18)
 vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes} --gbz-format -g X13.gbz
 ignore_genomes=$(python get_ids.py 12)
 vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes} --gbz-format -g X25.gbz
 gfa2gbwt -d X -p -m 30 && mv X.gfa data/MHC_49-MC_30_2.gfa
-gfa2gbwt -d X25 -p -m 25 && mv X25.gfa data/MHC_25-MC_30_2.gfa
-gfa2gbwt -d X13 -p -m 13 && mv X13.gfa data/MHC_13-MC_30_2.gfa
+gfa2gbwt -d X3 -p -m 30 && mv X3.gfa data/MHC_3-MC_30_2.gfa
+gfa2gbwt -d X7 -p -m 30 && mv X7.gfa data/MHC_7-MC_30_2.gfa
+gfa2gbwt -d X13 -p -m 30 && mv X13.gfa data/MHC_13-MC_30_2.gfa
+gfa2gbwt -d X25 -p -m 30 && mv X25.gfa data/MHC_25-MC_30_2.gfa
 cp X.gbz data/MHC_49-MC_30.gbz
 
 rm REF.fasta*
 rm MHC_49-MC_.vcf.gz*
 rm X.*
-rm X25.*
+rm X3.*
+rm X7.*
 rm X13.*
+rm X25.*
