@@ -22,7 +22,7 @@ fig, axes = plt.subplots(nrows=5, ncols=1, figsize=(8, 10))
 reads = df_pan_genie.index
 
 # Define y-ticks to ensure all powers of 10 are included
-y_ticks = np.arange(1, 7, 1)
+y_ticks = np.arange(0, 7, 1)
 
 # Alphabet labels for subplots
 alphabet_labels = ['(A)', '(B)', '(C)', '(D)', '(E)']
@@ -31,25 +31,25 @@ alphabet_labels = ['(A)', '(B)', '(C)', '(D)', '(E)']
 for i, read in enumerate(reads):
     # Extracting edit distances for each coverage level and tool
     edit_distances_phi = [get_edit_distance(df_phi, read, coverage) for coverage in coverages]
+    edit_distances_vg = [get_edit_distance(df_vg, read, coverage) for coverage in coverages]
     edit_distances_pan_genie = [get_edit_distance(df_pan_genie, read, coverage) for coverage in coverages]
     edit_distances_kage = [get_edit_distance(df_kage, read, coverage) for coverage in coverages]
-    edit_distances_vg = [get_edit_distance(df_vg, read, coverage) for coverage in coverages]
     
     # Convert to log10 scale
     edit_distances_phi_log = np.log10(edit_distances_phi)
+    edit_distances_vg_log = np.log10(edit_distances_vg)
     edit_distances_pan_genie_log = np.log10(edit_distances_pan_genie)
     edit_distances_kage_log = np.log10(edit_distances_kage)
-    edit_distances_vg_log = np.log10(edit_distances_vg)
     
     # X-axis positions
     x = np.arange(len(coverages))
     width = 0.15  # Adjusted bar width for additional plot
     
-    # Plot bars for each tool at different positions
+    # Plot bars for each tool at different positions in the required order
     axes[i].bar(x - 1.5*width, edit_distances_phi_log, width, label='PHI', zorder=3)
-    axes[i].bar(x - 0.5*width, edit_distances_pan_genie_log, width, label='PanGenie', zorder=3)
-    axes[i].bar(x + 0.5*width, edit_distances_kage_log, width, label='KAGE', zorder=3)
-    axes[i].bar(x + 1.5*width, edit_distances_vg_log, width, label='VG', zorder=3)
+    axes[i].bar(x - 0.5*width, edit_distances_vg_log, width, label='VG', zorder=3)
+    axes[i].bar(x + 0.5*width, edit_distances_pan_genie_log, width, label='PanGenie', zorder=3)
+    axes[i].bar(x + 1.5*width, edit_distances_kage_log, width, label='KAGE', zorder=3)
     
     axes[i].set_ylabel('Edit Distance', fontsize=10)
     axes[i].set_xticks(x)

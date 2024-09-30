@@ -3,7 +3,7 @@
 #SBATCH -C cpu
 #SBATCH --qos=regular
 #SBATCH --nodes=1
-#SBATCH --time=00:12:00
+#SBATCH --time=12:00:00
 #SBATCH --output=Batch_10.log
 #SBATCH --error=Batch_10.log
 
