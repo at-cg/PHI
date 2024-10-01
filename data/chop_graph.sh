@@ -48,14 +48,17 @@ vg gbwt -x X.xg -v MHC_49-MC_.vcf.gz -o X.gbwt
 vg gbwt -x X.xg -E -o X.paths.gbwt
 vg gbwt -m X.gbwt X.paths.gbwt -o X.combined.gbwt
 vg gbwt -x X.xg X.combined.gbwt --gbz-format -g X.gbz
-ignore_genomes=$(python get_ids.py 23)
+ignore_genomes=$(python get_ids.py 23) # 23/24 samples are ignored, 1 sample is used
+ignore_genomes_2=$(python get_ids_2.py "$ignore_genomes" 21) # 21/23 samples are ignored, 1 + 2 samples are used
+ignore_genomes_3=$(python get_ids_2.py "$ignore_genomes_2" 18) # 18/21 samples are ignored, 1 + 2 + 3 samples are used
+ignore_genomes_4=$(python get_ids_2.py "$ignore_genomes_3" 12) # 12/18 samples are ignored, 1 + 2 + 3 + 6 samples are used
 vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes} --gbz-format -g X3.gbz
 ignore_genomes=$(python get_ids.py 21)
-vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes} --gbz-format -g X7.gbz
+vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes_2} --gbz-format -g X7.gbz
 ignore_genomes=$(python get_ids.py 18)
-vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes} --gbz-format -g X13.gbz
+vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes_3} --gbz-format -g X13.gbz
 ignore_genomes=$(python get_ids.py 12)
-vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes} --gbz-format -g X25.gbz
+vg gbwt -x X.xg X.combined.gbwt ${ignore_genomes_4} --gbz-format -g X25.gbz
 gfa2gbwt -d X -p -m 30 && mv X.gfa data/MHC_49-MC_30_2.gfa
 gfa2gbwt -d X3 -p -m 30 && mv X3.gfa data/MHC_3-MC_30_2.gfa
 gfa2gbwt -d X7 -p -m 30 && mv X7.gfa data/MHC_7-MC_30_2.gfa

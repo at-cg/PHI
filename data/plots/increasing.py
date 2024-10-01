@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 # Load the CSV file into a DataFrame
-df = pd.read_csv('increasing.csv')
-
-# Extract the relevant columns for plotting
-haplotypes = df["Read"].tolist()
+df_updated = pd.read_csv('increasing.csv')
 
 # Function to extract values from each tuple string
 def extract_edit_distance(value):
@@ -20,81 +17,70 @@ def extract_runtime(value):
 def extract_memory(value):
     return float(value.split(', ')[1].strip())
 
-# Extract data for each coverage level
-edit_distances_13M = df["13M"].apply(extract_edit_distance).tolist()
-edit_distances_25M = df["25M"].apply(extract_edit_distance).tolist()
-edit_distances_49M = df["49M"].apply(extract_edit_distance).tolist()
+# Add columns for 3M, 7M, 13M, 25M, and 49M with extracted data
+coverage_levels = ["3M", "7M", "13M", "25M", "49M"]
 
-runtime_13M = df["13M"].apply(extract_runtime).tolist()
-runtime_25M = df["25M"].apply(extract_runtime).tolist()
-runtime_49M = df["49M"].apply(extract_runtime).tolist()
+for cov in coverage_levels:
+    df_updated[cov] = df_updated[cov].apply(lambda x: tuple(map(float, x.strip('()').split(', '))))
 
-memory_13M = df["13M"].apply(extract_memory).tolist()
-memory_25M = df["25M"].apply(extract_memory).tolist()
-memory_49M = df["49M"].apply(extract_memory).tolist()
+# Extract the relevant columns for plotting
+haplotypes = df_updated["Read"].tolist()
 
-# Initialize a figure with 3 horizontally stacked subplots
-fig, axes = plt.subplots(1, 3, figsize=(10, 2.5))
+edit_distances = {cov: df_updated[cov].apply(lambda x: x[2]).tolist() for cov in coverage_levels}
+runtimes = {cov: df_updated[cov].apply(lambda x: x[0] / 3600).tolist() for cov in coverage_levels}  # Convert to hours
+memory_usages = {cov: df_updated[cov].apply(lambda x: x[1]).tolist() for cov in coverage_levels}
 
-# X-axis positions
 x = np.arange(len(haplotypes))
-width = 0.2  # Width of bars
+width = 0.15  # Width of bars for edit distance plot
 
-# Plot 1: Edit Distance (Log-Scaled)
-# Apply log transformation to edit distances
-edit_distances_13M_log = np.log10(edit_distances_13M)
-edit_distances_25M_log = np.log10(edit_distances_25M)
-edit_distances_49M_log = np.log10(edit_distances_49M)
+# Plot 1: Edit Distance (Log Scale)
+plt.figure(figsize=(8, 3))
+for i, cov in enumerate(coverage_levels):
+    plt.bar(x - (2-i)*width, np.log10(edit_distances[cov]), width, label=f'{cov}', color=plt.get_cmap('tab10')(i), zorder=3)
 
-axes[0].bar(x - width, edit_distances_13M_log, width, label='13H', zorder=3, color=plt.get_cmap('tab10')(0))
-axes[0].bar(x, edit_distances_25M_log, width, label='25H', zorder=3, color=plt.get_cmap('tab10')(1))
-axes[0].bar(x + width, edit_distances_49M_log, width, label='49H', zorder=3, color=plt.get_cmap('tab10')(2))
-
-axes[0].set_xlabel('Haplotypes', fontsize=12)
-axes[0].set_ylabel('Edit Distance', fontsize=12)
-axes[0].set_xticks(x)
-axes[0].set_xticklabels(haplotypes, fontsize=11)
-y_ticks = np.arange(0, 5)
-axes[0].set_yticks(y_ticks)
-axes[0].set_yticklabels([f'$10^{int(tick)}$' for tick in y_ticks], fontsize=12)
-axes[0].grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
-
-# Plot 2: Runtime (hours)
-# Convert runtime from seconds to hours
-runtime_13M_hours = np.array(runtime_13M) / 3600
-runtime_25M_hours = np.array(runtime_25M) / 3600
-runtime_49M_hours = np.array(runtime_49M) / 3600
-
-axes[1].bar(x - width, runtime_13M_hours, width, label='13H', zorder=3, color=plt.get_cmap('tab10')(0))
-axes[1].bar(x, runtime_25M_hours, width, label='25H', zorder=3, color=plt.get_cmap('tab10')(1))
-axes[1].bar(x + width, runtime_49M_hours, width, label='49H', zorder=3, color=plt.get_cmap('tab10')(2))
-
-axes[1].set_xlabel('Haplotypes', fontsize=12)
-axes[1].set_ylabel('Runtime (hours)', fontsize=12)
-axes[1].set_xticks(x)
-axes[1].set_xticklabels(haplotypes, fontsize=12)
-axes[1].grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
-axes[1].tick_params(axis='y', labelsize=12)
-
-# Plot 3: Memory Usage (GB)
-axes[2].bar(x - width, memory_13M, width, label='13H', zorder=3, color=plt.get_cmap('tab10')(0))
-axes[2].bar(x, memory_25M, width, label='25H', zorder=3, color=plt.get_cmap('tab10')(1))
-axes[2].bar(x + width, memory_49M, width, label='49H', zorder=3, color=plt.get_cmap('tab10')(2))
-
-axes[2].set_xlabel('Haplotypes', fontsize=12)
-axes[2].set_ylabel('Memory Usage (GB)', fontsize=12)
-axes[2].set_xticks(x)
-axes[2].set_xticklabels(haplotypes, fontsize=12)
-axes[2].grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
-axes[2].tick_params(axis='y', labelsize=12)
-
-# Adding a legend to the first plot
-handles, labels = axes[0].get_legend_handles_labels()
-fig.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.12), fontsize=12)
-
-# Adjust layout and add space between subplots
+plt.xlabel('Haplotypes', fontsize=11)
+plt.ylabel('Edit Distance', fontsize=11)
+# axes[i].set_yticklabels([f'$10^{int(tick)}$' for tick in y_ticks])
+plt.yticks(np.arange(0, 6, 1), [f'$10^{i}$' for i in range(6)])
+plt.xticks(x, haplotypes, fontsize=11)
+plt.grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
+plt.legend(fontsize=10, loc='upper center', ncol=5, bbox_to_anchor=(0.5, 1.20))
 plt.tight_layout()
-plt.subplots_adjust(wspace=0.4)  # Add space between the plots
 
-# Save the figure
-plt.savefig('increasing.pdf', format='pdf', dpi=1200, bbox_inches='tight')
+# Save figure
+plt.savefig('increasing_edit.pdf', format='pdf', dpi=1200, bbox_inches='tight')
+plt.close()
+
+# Plot 2: Separate bar plots for runtime and memory usage
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 3))
+
+# Plotting runtime
+for i, cov in enumerate(coverage_levels):
+    ax1.bar(x - (2-i)*width, runtimes[cov], width, label=f'{cov}', color=plt.get_cmap('tab10')(i), zorder=3)
+
+ax1.set_xlabel('Haplotypes', fontsize=11)
+ax1.set_ylabel('Runtime (hours)', fontsize=11)
+ax1.set_xticks(x)
+ax1.set_xticklabels(haplotypes, fontsize=11)
+ax1.grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
+
+# Plotting memory usage
+for i, cov in enumerate(coverage_levels):
+    ax2.bar(x - (2-i)*width, memory_usages[cov], width, label=f'{cov}', color=plt.get_cmap('tab10')(i), zorder=3)
+
+ax2.set_xlabel('Haplotypes', fontsize=11)
+ax2.set_ylabel('Memory Usage (GB)', fontsize=11)
+ax2.set_xticks(x)
+ax2.set_xticklabels(haplotypes, fontsize=11)
+ax2.grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
+
+# Adding a combined legend at the top
+handles1, labels1 = ax1.get_legend_handles_labels()
+fig.legend(handles1, labels1, loc='upper center', ncol=5, bbox_to_anchor=(0.5, 0.99), fontsize=10)
+
+plt.tight_layout()
+plt.subplots_adjust(top=0.85)
+
+# Save figure
+plt.savefig('increasing_performance.pdf', format='pdf', dpi=1200, bbox_inches='tight')
+plt.close()
