@@ -454,16 +454,13 @@ std::set<uint64_t> ILP_index::compute_hashes(std::string &read_seq) {
 
     uint64_t prev_hash = UINT64_MAX; // Initialize to maximum possible value
 
-    // Precompute the reverse complement of the entire sequence
-    std::string rev_seq = reverse_strand(read_seq);
-
     // Deque to store k-mers and their positions
     std::deque<std::pair<std::string, int32_t>> window_deque;
 
     for (int32_t i = 0; i <= seq_size - k_mer; ++i) {
         // Extract the forward and reverse k-mers
         std::string fwd_kmer = read_seq.substr(i, k_mer);
-        std::string rev_kmer = rev_seq.substr(seq_size - i - k_mer, k_mer);
+        std::string rev_kmer = reverse_strand(fwd_kmer);
 
         // Choose the lexicographically smallest k-mer
         std::string min_kmer = std::min(fwd_kmer, rev_kmer);
