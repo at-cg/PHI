@@ -18,7 +18,7 @@ def extract_memory(value):
     return float(value.split(', ')[1].strip())
 
 # Add columns for 3M, 7M, 13M, 25M, and 49M with extracted data
-coverage_levels = ["3M", "7M", "13M", "25M", "49M"]
+coverage_levels = ["3H", "7H", "13H", "25H", "49H"]
 
 for cov in coverage_levels:
     df_updated[cov] = df_updated[cov].apply(lambda x: tuple(map(float, x.strip('()').split(', '))))

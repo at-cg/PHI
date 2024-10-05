@@ -802,7 +802,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                             std::string var_name = std::to_string(u) + "_" + std::to_string(j) + "_" + std::to_string(v) + "_" + std::to_string(j);
                             if (vars.find(var_name) == vars.end()) // Variable does not exist
                             {
-                                vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                // vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                             }
                             // kmer_expr += vars[var_name] * kmer_expr_var;
                             kmer_expr += vars[var_name];
@@ -846,7 +847,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                             std::string var_name = std::to_string(u) + "_" + std::to_string(j) + "_" + std::to_string(v) + "_" + std::to_string(j);
                             if (vars.find(var_name) == vars.end()) // Variable does not exist
                             {
-                                vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                // vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                vars[var_name] = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                             }
                             kmer_expr += vars[var_name] * kmer_expr_var;
                         }
@@ -890,13 +892,15 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             for (int32_t i = 0; i < num_walks; i++) {
                 int32_t u_start = paths[i][0];
                 std::string var_name_start = "s_" + std::to_string(u_start) + "_" + std::to_string(i);
-                GRBVar var_start = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_start);
+                // GRBVar var_start = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_start);
+                GRBVar var_start = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name_start);
                 vars[var_name_start] = var_start;
                 start_expr += var_start;
 
                 int32_t u_end = paths[i][paths[i].size() - 1];
                 std::string var_name_end = std::to_string(u_end) + "_" + std::to_string(i) + "_e";
-                GRBVar var_end = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_end);
+                // GRBVar var_end = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_end);
+                GRBVar var_end = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name_end);
                 vars[var_name_end] = var_end;
                 end_expr += var_end;
             }
@@ -918,7 +922,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     int32_t v = paths[i][idx + 1];
                     std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
                     if (vars.find(var_name) == vars.end()) { // Variable does not exist
-                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                         vars[var_name] = var;
                         vtx_expr += 0 * var; // no need without recombination
                     }
@@ -940,7 +945,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                                 std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
                                 if (vars.find(var_name) == vars.end()) // Variable does not exist
                                 {
-                                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                    // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                                     vars[var_name] = var;
                                     vtx_expr += c_1 * var;
                                     // recomb_expr += var;
@@ -973,14 +979,16 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     int32_t v_out = paths[i][idx + 1];
                     std::string var_name = std::to_string(v_in) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(i);
                     if (vars.find(var_name) == vars.end()) { // Variable does not exist
-                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                         vars[var_name] = var;
                     }
                     in_expr += vars[var_name];
 
                     var_name = std::to_string(v) + "_" + std::to_string(i) + "_" + std::to_string(v_out) + "_" + std::to_string(i);
                     if (vars.find(var_name) == vars.end()) { // Variable does not exist
-                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                         vars[var_name] = var;
                     }
                     out_expr += vars[var_name];
@@ -994,7 +1002,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                             {
                                 var_name = std::to_string(u) + "_" + std::to_string(j) + "_" + std::to_string(v) + "_" + std::to_string(i);
                                 if (vars.find(var_name) == vars.end()) { // Variable does not exist
-                                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                    // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                                     vars[var_name] = var;
                                 }
                                 in_expr += vars[var_name];
@@ -1011,7 +1020,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                             {
                                 var_name = std::to_string(v) + "_" + std::to_string(i) + "_" + std::to_string(u) + "_" + std::to_string(j);
                                 if (vars.find(var_name) == vars.end()) { // Variable does not exist
-                                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                    // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                                     vars[var_name] = var;
                                 }
                                 out_expr += vars[var_name];
@@ -1033,7 +1043,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     for (auto j: haps[v]) {
                         std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_" + std::to_string(v) + "_" + std::to_string(j);
                         if (vars.find(var_name) == vars.end()) { // Variable does not exist
-                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                            // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                             vars[var_name] = var;
                         }
                         s_expr -= vars[var_name];
@@ -1051,7 +1062,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     for (auto j: haps[v]) {
                         std::string var_name = std::to_string(v) + "_" + std::to_string(j) + "_" + std::to_string(u) + "_" + std::to_string(i);
                         if (vars.find(var_name) == vars.end()) { // Variable does not exist
-                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                            // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                            GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                             vars[var_name] = var;
                         }
                         e_expr += vars[var_name];
@@ -1059,7 +1071,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                 }
                 std::string var_name = std::to_string(u) + "_" + std::to_string(i) + "_e";
                 if (vars.find(var_name) == vars.end()) { // Variable does not exist
-                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                    // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                    GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                     vars[var_name] = var;
                 }
                 e_expr += -1 * vars[var_name];
@@ -1081,13 +1094,15 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             for (int32_t i = 0; i < num_walks; i++) {
                 int32_t u_start = paths[i][0];
                 std::string var_name_start = "s_" + std::to_string(u_start) + "_" + std::to_string(i);
-                GRBVar var_start = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_start);
+                // GRBVar var_start = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_start);
+                GRBVar var_start = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name_start);
                 vars[var_name_start] = var_start;
                 start_expr += var_start;
 
                 int32_t u_end = paths[i].back();
                 std::string var_name_end = std::to_string(u_end) + "_" + std::to_string(i) + "_e";
-                GRBVar var_end = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_end);
+                // GRBVar var_end = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_end);
+                GRBVar var_end = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name_end);
                 vars[var_name_end] = var_end;
                 end_expr += var_end;
             }
@@ -1115,7 +1130,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                     new_adj[std::to_string(u) + "_" + std::to_string(i)].push_back(std::to_string(v) + "_" + std::to_string(i));
                     
                     if (vars.find(var_name) == vars.end()) { // Variable does not exist
-                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name);
+                        GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name);
                         vars[var_name] = var;
                         vtx_expr += 0 * var; // no need without recombination
                     }
@@ -1160,7 +1176,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
                             
                             if (vars.find(var_name_1) == vars.end()) // Variable does not exist
                             {
-                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
+                                // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_1);
+                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name_1);
                                 vars[var_name_1] = var;
                             }
                             vtx_expr += (c_1/2) * vars[var_name_1];
@@ -1177,7 +1194,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
 
                             if (vars.find(var_name_2) == vars.end()) // Variable does not exist
                             {
-                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
+                                // GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, var_name_2);
+                                GRBVar var = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, var_name_2);
                                 vars[var_name_2] = var;
                             }
                             vtx_expr += (c_1/2) * vars[var_name_2];
@@ -1322,7 +1340,8 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
         for (int i = 0; i < num_vars; ++i) {
             GRBVar var = variables[i];
             // Check if the variable is binary and non-zero
-            if (var.get(GRB_CharAttr_VType) == GRB_BINARY && var.get(GRB_DoubleAttr_X) > 0.0) {
+            // if (var.get(GRB_CharAttr_VType) == GRB_BINARY && var.get(GRB_DoubleAttr_X) > 0.0) {
+            if (var.get(GRB_CharAttr_VType) == GRB_CONTINUOUS && var.get(GRB_DoubleAttr_X) == 1.0) {
                 // first letter is or last letter is e then skip
                 std::string var_name = var.get(GRB_StringAttr_VarName);
                 if (var_name[0] == 's' || var_name[0] == 'z'  || var_name[var_name.size() - 1] == 'e') {
