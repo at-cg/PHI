@@ -78,6 +78,7 @@ class ILP_index {
         int32_t is_qclp;
         int32_t is_naive_exp;
         float threshold;
+        float is_mixed;
 
         // Constructor
         ILP_index(gfa_t *g);	// This is constructor

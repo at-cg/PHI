@@ -30,6 +30,12 @@ make GUROBI_HOME=/path/to/gurobo_home (i.e. /opt/gurobi1101/linux64)
 # test run with IQP (default)
 ./PHI -t32 -q1 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
 
+# test run with MILP
+./PHI -t32 -q0 -m1 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
+
+# test run with MIQP (default)
+./PHI -t32 -q1 -m1 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
+
 # test run with vcf and reference
 ./vcf2gfa.py -v test/MHC_4.vcf.gz -r test/MHC-CHM13.0.fa.gz | gzip > test/MHC_4_vcf.gfa.gz
 ./PHI -t32 -g test/MHC_4_vcf.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
