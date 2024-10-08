@@ -61,7 +61,7 @@ for read in reads:
 for read in reads:
     table = []
     for cov in coverage:
-        hap_id = f'rec_hap_{read}_{cov}x_2'
+        hap_id = f'rec_hap_{read}_{cov}x_2_miqp'
         table.append([hap_id] + data[read][hap_id])
     print(f"Read: {read}")
     print(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
