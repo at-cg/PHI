@@ -103,7 +103,7 @@ for read in reads:
         count_reads = int(cov * 5000000 / mean_read_length[read])
         if (cov == 15):
             count_reads = 1000000000 # use all the available reads
-        seed = random.randint(1, 10000)
+        seed = random.randint(1, 10000) + random.randint(10001, 100000) + random.randint(100001, 1000000) + random.randint(1000001, 10000000) + random.randint(10000001, 100000000)
         os.system(f"source ~/.bashrc && seqkit sample -s {seed} -n {count_reads} data/reads/{read}.fastq > data/reads_downsampled/{read}_{cov}x.fastq")
 
 # Preprocess done
