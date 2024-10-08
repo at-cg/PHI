@@ -43,7 +43,7 @@ plot_data = [(phi_ilp_runtime, 'Runtime (hours)'), (phi_runtime, None),
              (phi_ilp_rss, 'Memory Usage (GB)'), (phi_rss, None)]
 
 # Titles for each subplot
-titles = ['(A) ILP Runtime', '(B) IQP Runtime', '(C) ILP Memory Usage', '(D) IQP Memory Usage']
+titles = ['(A) MILP Runtime', '(B) MIQP Runtime', '(C) MILP Memory Usage', '(D) MIQP Memory Usage']
 
 # Width of the bars
 bar_width = 0.15
