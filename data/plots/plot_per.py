@@ -36,14 +36,14 @@ max_runtime = max(phi_runtime.max().max(), phi_ilp_runtime.max().max())
 max_rss = max(phi_rss.max().max(), phi_ilp_rss.max().max())
 
 # Plot configuration
-fig, axes = plt.subplots(2, 2, figsize=(10, 6))
+fig, axes = plt.subplots(2, 2, figsize=(11, 5.5))
 
 # Data to plot and corresponding y-axis labels
 plot_data = [(phi_ilp_runtime, 'Runtime (hours)'), (phi_runtime, None),
-             (phi_ilp_rss, 'Memory Usage (GB)'), (phi_rss, None)]
+             (phi_ilp_rss, 'Memory usage (GB)'), (phi_rss, None)]
 
 # Titles for each subplot
-titles = ['(A) ILP Runtime', '(B) IQP Runtime', '(C) ILP Memory Usage', '(D) IQP Memory Usage']
+titles = ['(A) ILP runtime', '(B) IQP runtime', '(C) ILP memory usage', '(D) IQP memory usage']
 
 # Width of the bars
 bar_width = 0.15
@@ -62,7 +62,7 @@ for ax, (data, ylabel), title in zip(axes.flatten(), plot_data, titles):
     ax.tick_params(axis='y', labelsize=13)
 
     # Set y-axis limits based on max values
-    if 'Runtime' in title:
+    if '(A)' in title or '(B)' in title:
         ax.set_ylim(0, max_runtime * 1.1)  # Add 10% buffer to max
     else:
         ax.set_ylim(0, max_rss * 1.1)
@@ -71,12 +71,15 @@ for ax, (data, ylabel), title in zip(axes.flatten(), plot_data, titles):
     if ylabel is not None:
         ax.set_ylabel(ylabel, fontsize=13)
 
-# Set the overall legend at the top
-fig.legend(legend_labels, loc='upper center', ncol=5, fontsize=13)
+# Add the legend for the labels without the title
+legend = fig.legend(legend_labels, loc='upper center', ncol=5, fontsize=13, bbox_to_anchor=(0.5, 1.02))
+
+# Manually add a title on the left using plt.text, positioned relative to the figure
+plt.text(0.14, 0.97, 'MHC haplotype', fontsize=13, transform=fig.transFigure, ha='center')
 
 # Adjust layout
 plt.tight_layout()
-plt.subplots_adjust(top=0.88, wspace=0.2, hspace=0.5)  # Added hspace for space between top and bottom plots
+plt.subplots_adjust(top=0.88, wspace=0.15, hspace=0.5)  # Added hspace for space between top and bottom plots
 
 # Save the figure
 plt.savefig('phi_vs_phi_ilp.pdf', bbox_inches='tight', dpi=1200, format='pdf')

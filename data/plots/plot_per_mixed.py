@@ -50,19 +50,19 @@ max_rss = max(phi_rss.max().max(), phi_ilp_rss.max().max(),
               phi_ilp_no_relax_rss.max().max(), phi_iqp_no_relax_rss.max().max())
 
 # Plot configuration
-fig, axes = plt.subplots(2, 4, figsize=(14, 5.5))
+fig, axes = plt.subplots(2, 4, figsize=(12, 5.5))
 
 # Data to plot and corresponding y-axis labels
 plot_data = [(phi_ilp_runtime, 'Runtime (hours)'), (phi_ilp_no_relax_runtime, None),
              (phi_runtime, None), (phi_iqp_no_relax_runtime, None),
-             (phi_ilp_rss, 'Memory Usage (GB)'), (phi_ilp_no_relax_rss, None), 
+             (phi_ilp_rss, 'Memory usage (GB)'), (phi_ilp_no_relax_rss, None), 
              (phi_rss, None), (phi_iqp_no_relax_rss, None)]
 
 # Titles for each subplot
-titles = ['(A) ILP Runtime', '(B) ILP Runtime (no relaxation)', 
-          '(C) IQP Runtime', '(D) IQP Runtime (no relaxation)', 
-          '(E) ILP Memory Usage', '(F) ILP Memory Usage (no relaxation)', 
-          '(G) IQP Memory Usage', '(H) IQP Memory Usage (no relaxation)']
+titles = ['(A) ILP', '(B) ILP (no relaxation)', 
+          '(C) IQP', '(D) IQP (no relaxation)', 
+          '(E) ILP', '(F) ILP (no relaxation)', 
+          '(G) IQP', '(H) IQP (no relaxation)']
 
 # Width of the bars
 bar_width = 0.15
@@ -81,7 +81,7 @@ for ax, (data, ylabel), title in zip(axes.flatten(), plot_data, titles):
     ax.tick_params(axis='y', labelsize=13)
 
     # Set y-axis limits based on max values
-    if 'Runtime' in title:
+    if '(A)' in title or '(B)' in title or '(C)' in title or '(D)' in title:
         ax.set_ylim(0, max_runtime * 1.1)  # Add 10% buffer to max
     else:
         ax.set_ylim(0, max_rss * 1.1)
@@ -90,8 +90,11 @@ for ax, (data, ylabel), title in zip(axes.flatten(), plot_data, titles):
     if ylabel is not None:
         ax.set_ylabel(ylabel, fontsize=13)
 
-# Set the overall legend at the top
-fig.legend(legend_labels, loc='upper center', ncol=5, fontsize=13)
+# Add the legend for the labels without the title
+legend = fig.legend(legend_labels, loc='upper center', ncol=5, fontsize=13, bbox_to_anchor=(0.5, 1.0))
+
+# Manually add a title on the left using plt.text, positioned relative to the figure
+plt.text(0.17, 0.95, 'MHC haplotype', fontsize=13, transform=fig.transFigure, ha='center')
 
 # Adjust layout
 plt.tight_layout()

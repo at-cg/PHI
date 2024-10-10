@@ -5,7 +5,7 @@ import numpy as np
 # Load the CSV files from current directory paths
 df_pan_genie = pd.read_csv('PanGenie.csv', index_col=0)
 df_kage = pd.read_csv('KAGE.csv', index_col=0)
-df_phi = pd.read_csv('PHI.csv', index_col=0)
+df_phi = pd.read_csv('PHI_MIQP.csv', index_col=0)
 df_vg = pd.read_csv('VG.csv', index_col=0)
 
 # Coverage levels and tools
@@ -51,7 +51,7 @@ for i, read in enumerate(reads):
     axes[i].bar(x + 0.5*width, edit_distances_pan_genie_log, width, label='PanGenie', zorder=3)
     axes[i].bar(x + 1.5*width, edit_distances_kage_log, width, label='KAGE', zorder=3)
     
-    axes[i].set_ylabel('Edit Distance', fontsize=10)
+    axes[i].set_ylabel('Edit distance', fontsize=10)
     axes[i].set_xticks(x)
     
     # Adjust the x-tick labels for the last coverage
