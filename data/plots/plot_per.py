@@ -12,8 +12,8 @@ def parse_tuple_string(tuple_string):
         return (0, 0, 0)
 
 # Load data from CSV files
-phi_data = pd.read_csv('PHI.csv')
-phi_ilp_data = pd.read_csv('PHI_ilp.csv')
+phi_data = pd.read_csv('PHI_MIQP.csv')
+phi_ilp_data = pd.read_csv('PHI_MILP.csv')
 
 # Define coverage labels (excluding "15x")
 coverage = ['0.1x', '0.5x', '1x', '2x', '5x', '10x']
