@@ -7,7 +7,7 @@ df_updated = pd.read_csv('increasing.csv')
 
 # Add columns for 3M, 7M, 13M, 25M, and 49M with extracted data
 coverage_levels = ["3H", "7H", "13H", "25H", "49H"]
-legend_labels = ['1', '7', '13', '25', '49']  # The new labels for the legend
+legend_labels = ['3', '7', '13', '25', '49']  # The new labels for the legend
 
 for cov in coverage_levels:
     df_updated[cov] = df_updated[cov].apply(lambda x: tuple(map(float, x.strip('()').split(', '))))
