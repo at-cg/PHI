@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import os
 import re
 from tabulate import tabulate
@@ -40,11 +38,16 @@ for read in reads:
             edit_distance_match = re.search(r'#0:\s+(\d+)\s+', log_data)
             edit_distance = int(edit_distance_match.group(1)) if edit_distance_match else None
 
+            # Extract homozygous and heterozygous variant counts
+            variants_match = re.search(r'Total variants:\s+(\d+), Homozygous variants:\s+(\d+), Heterozygous variants:\s+(\d+)', log_data)
+            homo_variants = int(variants_match.group(2)) if variants_match else None
+            het_variants = int(variants_match.group(3)) if variants_match else None
+
             # Store the extracted data
-            data[read][hap_id] = [real_time, peak_rss, edit_distance]
+            data[read][hap_id] = [real_time, peak_rss, edit_distance, homo_variants, het_variants]
         else:
             # Handle missing logs gracefully
-            data[read][hap_id] = [None, None, None]
+            data[read][hap_id] = [None, None, None, None, None]
 
 # Generate and print tables for each read and coverage level
 for read in reads:
@@ -53,10 +56,10 @@ for read in reads:
         hap_id = f'rec_hap_{read}_{cov}x_PG'
         table.append([hap_id] + data[read][hap_id])
     print(f"Read: {read}")
-    print(tabulate(table, headers=['Haplotype', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance']))
+    print(tabulate(table, headers=['Haplotype', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Homozygous Variants', 'Heterozygous Variants']))
     print('\n\n')
     # Save the table to a file as text
     with open(f'{output_dir}stats_{read}.txt', 'w') as file:
         file.write(f"Read: {read}\n")
-        file.write(tabulate(table, headers=['Haplotype', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance']))
+        file.write(tabulate(table, headers=['Haplotype', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Homozygous Variants', 'Heterozygous Variants']))
         file.write('\n\n')
