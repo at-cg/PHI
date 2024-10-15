@@ -95,7 +95,7 @@ with ThreadPoolExecutor() as executor:
     # Collect results as they are completed
     for future in as_completed(futures):
         read, cov, result = future.result()
-        hap_id = f'rec_hap_{read}_{cov}x_2'
+        hap_id = f'rec_hap_{read}_{cov}x_2_milp'
         data[read][hap_id] = result
 
 # Generate and print tables for each read and coverage level
@@ -108,7 +108,7 @@ for read in reads:
     print(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Alignment Identity (%)', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
     print('\n\n')
     # Save the table to a file as text
-    with open(f'{output_dir}stats_{read}_2_miqp.txt', 'w') as file:
+    with open(f'{output_dir}stats_{read}_2_milp.txt', 'w') as file:
         file.write(f"Read: {read}\n")
         file.write(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Alignment Identity (%)', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
         file.write('\n\n')
