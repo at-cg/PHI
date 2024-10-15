@@ -95,7 +95,7 @@ with ThreadPoolExecutor() as executor:
     # Collect results as they are completed
     for future in as_completed(futures):
         read, cov, result = future.result()
-        hap_id = f'rec_hap_{read}_{cov}x_2'
+        hap_id = f'rec_hap_{read}_{cov}x_2_miqp'
         data[read][hap_id] = result
 
 # Generate and print tables for each read and coverage level
