@@ -17,12 +17,12 @@ def get_edit_distance(df, read, coverage):
     return int(df.loc[read, coverage].split(', ')[-1][:-1])
 
 # Plotting bar plots
-fig, axes = plt.subplots(nrows=5, ncols=1, figsize=(8, 10))
+fig, axes = plt.subplots(nrows=5, ncols=1, figsize=(8, 9))
 
 reads = df_pan_genie.index
 
 # Define y-ticks to ensure all powers of 10 are included
-y_ticks = np.arange(0, 7, 1)
+y_ticks = np.arange(0, 7, 2)
 
 # Alphabet labels for subplots
 alphabet_labels = ['(A)', '(B)', '(C)', '(D)', '(E)']
@@ -51,25 +51,26 @@ for i, read in enumerate(reads):
     axes[i].bar(x + 0.5*width, edit_distances_pan_genie_log, width, label='PanGenie', zorder=3)
     axes[i].bar(x + 1.5*width, edit_distances_kage_log, width, label='KAGE', zorder=3)
     
-    axes[i].set_ylabel('Edit distance', fontsize=10)
+    axes[i].set_ylabel('Edit distance', fontsize=12)
     axes[i].set_xticks(x)
     
     # Adjust the x-tick labels for the last coverage
     new_cov = [last_cov[i] if cov == '15x' else cov for cov in coverages]
-    axes[i].set_xticklabels(new_cov)
+    axes[i].set_xticklabels(new_cov, fontsize=12)
     axes[i].set_yticks(y_ticks)
-    axes[i].set_yticklabels([f'$10^{int(tick)}$' for tick in y_ticks])
-    axes[i].set_xlabel('Coverage')
+    axes[i].set_yticklabels([f'$10^{int(tick)}$' for tick in y_ticks], fontsize=11)
+    axes[i].set_xlabel('Coverage', fontsize=12)
     axes[i].grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
     
     # Add the title inside the bar plot
-    axes[i].set_title(f'{alphabet_labels[i]} {read}', fontsize=10, loc='center')
+    axes[i].set_title(f'{alphabet_labels[i]} {read}', fontsize=12, loc='center')
 
-axes[-1].set_xlabel('Coverage')
+axes[-1].set_xlabel('Coverage', fontsize=12)
 
 # Adding the legend at the top of the first plot
 handles, labels = axes[0].get_legend_handles_labels()
-fig.legend(handles, labels, loc='upper center', ncol=4, bbox_to_anchor=(0.5, 1.01), fontsize=10)
+# fig.legend(handles, labels, loc='upper center', ncol=4, bbox_to_anchor=(0.5, 1.01), fontsize=10)
+fig.legend(handles, labels, loc='upper right', fontsize=12, bbox_to_anchor=(1.22, 0.5), title='Method', title_fontsize='12')
 
 # Adjust layout to add space between plots and ensure labels are visible
 plt.subplots_adjust(hspace=0.5)

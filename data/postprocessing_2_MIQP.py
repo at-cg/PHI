@@ -2,6 +2,7 @@
 
 import os
 import re
+import subprocess
 from tabulate import tabulate
 
 # List of reads and coverage levels
@@ -15,12 +16,34 @@ data = {}
 output_dir = 'data/Rec_haps/'
 os.makedirs(output_dir, exist_ok=True)
 
+# Function to compute edit distance and identity using edlib
+def compute_edlib_metrics(ground_truth_fasta, query_fasta):
+    try:
+        # Run both commands in a single shell process
+        command = f'conda activate edlib && python3 edlib_edits.py {ground_truth_fasta} {query_fasta}'
+        result = subprocess.run(command, shell=True, capture_output=True, text=True, executable='/bin/bash')
+
+        # Extract the relevant values from the output
+        edit_distance_match = re.search(r'Edit distance:\s+(\d+)', result.stdout)
+        alignment_identity_match = re.search(r'Alignment identity:\s+(\d+\.\d+)%', result.stdout)
+
+        edit_distance = int(edit_distance_match.group(1)) if edit_distance_match else None
+        alignment_identity = float(alignment_identity_match.group(1)) if alignment_identity_match else None
+
+        return edit_distance, alignment_identity
+    except Exception as e:
+        print(f"Error computing edlib metrics for {query_fasta}: {e}")
+        return None, None
+
 # Read log files and extract statistics
 for read in reads:
     data[read] = {}
     for cov in coverage:
-        hap_id = f'rec_hap_{read}_{cov}x_2_miqp'
+        hap_id = f'rec_hap_{read}_{cov}x_2_milp'
         log_file = f'{output_dir}{hap_id}.log'
+        ground_truth_fasta = f'Ground_truth/{read}.fasta'
+        query_fasta = f'{output_dir}{hap_id}.fa'
+
         if os.path.exists(log_file):
             with open(log_file, 'r') as file:
                 log_data = file.read()
@@ -36,8 +59,8 @@ for read in reads:
             peak_rss_match = re.search(r'Peak RSS:\s+(\d+\.\d+)\s+GB', log_data)
             peak_rss = float(peak_rss_match.group(1)) if peak_rss_match else None
 
-            edit_distance_match = re.search(r'#0:\s+(\d+)\s+', log_data)
-            edit_distance = int(edit_distance_match.group(1)) if edit_distance_match else None
+            # Compute edit distance and alignment identity using edlib
+            edit_distance, alignment_identity = compute_edlib_metrics(ground_truth_fasta, query_fasta)
 
             # Extract minimizers and ILP percentage
             minimizers_match = re.search(r'Indexed reads with spectrum size:\s+(\d+)', log_data)
@@ -52,22 +75,22 @@ for read in reads:
             retained_minimizers = float(filtered_minimizers_match.group(2)) if filtered_minimizers_match else None
 
             # Store the extracted data
-            data[read][hap_id] = [recomb_cnt, real_time, peak_rss, edit_distance, minimizers, ilp_percentage, filtered_minimizers]
+            data[read][hap_id] = [recomb_cnt, real_time, peak_rss, edit_distance, alignment_identity, minimizers, ilp_percentage, filtered_minimizers]
         else:
             # Handle missing logs gracefully
-            data[read][hap_id] = [None, None, None, None, None, None, None]
+            data[read][hap_id] = [None, None, None, None, None, None, None, None]
 
 # Generate and print tables for each read and coverage level
 for read in reads:
     table = []
     for cov in coverage:
-        hap_id = f'rec_hap_{read}_{cov}x_2_miqp'
+        hap_id = f'rec_hap_{read}_{cov}x_2_milp'
         table.append([hap_id] + data[read][hap_id])
     print(f"Read: {read}")
-    print(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
+    print(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Alignment Identity (%)', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
     print('\n\n')
     # Save the table to a file as text
-    with open(f'{output_dir}stats_{read}_2.txt', 'w') as file:
+    with open(f'{output_dir}stats_{read}_3.txt', 'w') as file:
         file.write(f"Read: {read}\n")
-        file.write(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
+        file.write(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Alignment Identity (%)', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
         file.write('\n\n')

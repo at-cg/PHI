@@ -43,7 +43,7 @@ def par_run_PHI(read_cov_pair):
     ground_truth = f"Ground_truth/{read}.fasta"
     
     cmd = (
-        f"PHI -R100 -k31 -w25 -t{running_threads} "
+        f"PHI -m0 -q0 -R100 -k31 -w25 -t{running_threads} "
         f"-g data/MHC_49-MC_30_2.gfa -r {downsampled_read} "
         f"-o {output_file} > {log_file} 2>&1 && "
         f"edlib-aligner {ground_truth} {output_file} >> {log_file}"

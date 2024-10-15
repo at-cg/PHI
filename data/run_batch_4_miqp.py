@@ -46,7 +46,7 @@ def par_run_PHI(read_cov_pair):
         f"PHI -q1 -R100 -k31 -w25 -t{running_threads} "
         f"-g data/MHC_49-MC_30_2.gfa -r {downsampled_read} "
         f"-o {output_file} > {log_file} 2>&1 && "
-        f"edlib-aligner {ground_truth} {output_file} >> {log_file}"
+        f"conda activate edlib && python3 edlib_edits.py {ground_truth} {output_file} >> {log_file}"
     )
     os.system(cmd)
 
