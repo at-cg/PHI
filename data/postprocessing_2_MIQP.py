@@ -2,7 +2,6 @@
 
 import os
 import re
-import subprocess
 from tabulate import tabulate
 
 # List of reads and coverage levels
@@ -16,33 +15,12 @@ data = {}
 output_dir = 'data/Rec_haps/'
 os.makedirs(output_dir, exist_ok=True)
 
-# Function to compute edit distance and identity using edlib
-def compute_edlib_metrics(ground_truth_fasta, query_fasta):
-    try:
-        # Run both commands in a single shell process
-        command = f'conda activate edlib && python3 edlib_edits.py {ground_truth_fasta} {query_fasta}'
-        result = subprocess.run(command, shell=True, capture_output=True, text=True, executable='/bin/bash')
-
-        # Extract the relevant values from the output
-        edit_distance_match = re.search(r'Edit distance:\s+(\d+)', result.stdout)
-        alignment_identity_match = re.search(r'Alignment identity:\s+(\d+\.\d+)%', result.stdout)
-
-        edit_distance = int(edit_distance_match.group(1)) if edit_distance_match else None
-        alignment_identity = float(alignment_identity_match.group(1)) if alignment_identity_match else None
-
-        return edit_distance, alignment_identity
-    except Exception as e:
-        print(f"Error computing edlib metrics for {query_fasta}: {e}")
-        return None, None
-
 # Read log files and extract statistics
 for read in reads:
     data[read] = {}
     for cov in coverage:
         hap_id = f'rec_hap_{read}_{cov}x_2_milp'
         log_file = f'{output_dir}{hap_id}.log'
-        ground_truth_fasta = f'Ground_truth/{read}.fasta'
-        query_fasta = f'{output_dir}{hap_id}.fa'
 
         if os.path.exists(log_file):
             with open(log_file, 'r') as file:
@@ -59,8 +37,12 @@ for read in reads:
             peak_rss_match = re.search(r'Peak RSS:\s+(\d+\.\d+)\s+GB', log_data)
             peak_rss = float(peak_rss_match.group(1)) if peak_rss_match else None
 
-            # Compute edit distance and alignment identity using edlib
-            edit_distance, alignment_identity = compute_edlib_metrics(ground_truth_fasta, query_fasta)
+            # Extract Edit distance and Alignment identity directly from the log file
+            edit_distance_match = re.search(r'Edit distance:\s+(\d+)', log_data)
+            edit_distance = int(edit_distance_match.group(1)) if edit_distance_match else None
+
+            alignment_identity_match = re.search(r'Alignment identity:\s+(\d+\.\d+)%', log_data)
+            alignment_identity = float(alignment_identity_match.group(1)) if alignment_identity_match else None
 
             # Extract minimizers and ILP percentage
             minimizers_match = re.search(r'Indexed reads with spectrum size:\s+(\d+)', log_data)

@@ -36,8 +36,12 @@ for read in reads:
             peak_rss_match = re.search(r'Peak RSS:\s+(\d+\.\d+)\s+GB', log_data)
             peak_rss = float(peak_rss_match.group(1)) if peak_rss_match else None
 
-            edit_distance_match = re.search(r'#0:\s+(\d+)\s+', log_data)
+            # Extract edit distance and alignment identity directly from the log file
+            edit_distance_match = re.search(r'Edit distance:\s+(\d+)', log_data)
             edit_distance = int(edit_distance_match.group(1)) if edit_distance_match else None
+
+            alignment_identity_match = re.search(r'Alignment identity:\s+(\d+\.\d+)%', log_data)
+            alignment_identity = float(alignment_identity_match.group(1)) if alignment_identity_match else None
 
             # Extract minimizers and ILP percentage
             minimizers_match = re.search(r'Indexed reads with spectrum size:\s+(\d+)', log_data)
@@ -52,10 +56,10 @@ for read in reads:
             retained_minimizers = float(filtered_minimizers_match.group(2)) if filtered_minimizers_match else None
 
             # Store the extracted data
-            data[read][hap_id] = [recomb_cnt, real_time, peak_rss, edit_distance, minimizers, ilp_percentage, filtered_minimizers]
+            data[read][hap_id] = [recomb_cnt, real_time, peak_rss, edit_distance, alignment_identity, minimizers, ilp_percentage, filtered_minimizers]
         else:
             # Handle missing logs gracefully
-            data[read][hap_id] = [None, None, None, None, None, None, None]
+            data[read][hap_id] = [None, None, None, None, None, None, None, None]
 
 # Generate and print tables for each read and coverage level
 for read in reads:
@@ -64,10 +68,10 @@ for read in reads:
         hap_id = f'rec_hap_{read}_{cov}x_2_milp'
         table.append([hap_id] + data[read][hap_id])
     print(f"Read: {read}")
-    print(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
+    print(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Alignment Identity (%)', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
     print('\n\n')
     # Save the table to a file as text
     with open(f'{output_dir}stats_{read}_3.txt', 'w') as file:
         file.write(f"Read: {read}\n")
-        file.write(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
+        file.write(tabulate(table, headers=['Haplotype', 'Recombination Count', 'Real time(s)', 'Peak RSS(GB)', 'Edit distance', 'Alignment Identity (%)', 'Minimizers (Reads)', '% Minimizers in ILP', '% Filtered Minimizers']))
         file.write('\n\n')
