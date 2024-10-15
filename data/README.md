@@ -144,5 +144,5 @@ python3 postprocessing_PG.py
 python3 postprocessing_KG.py
 ```
 
-The [plot](plot) directory contains the statistics for the command mentioned above, which was run on the Perlmutter supercomputer. The SLURM scripts are also attached.
+#### The [plot](data/plot) directory contains the statistics for the command mentioned above, which was run on the Perlmutter supercomputer.
 ---
