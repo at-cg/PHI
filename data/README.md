@@ -13,6 +13,10 @@ Before starting the process, ensure the following tools and datasets are availab
     - PanGenie
     - KAGE
     - seqkit
+    - bcftools (with plugins)
+    - snakemake
+    - vcflib
+    - Gurobi
 
 Ensure all dependencies are installed or available via conda.
 
@@ -144,5 +148,5 @@ python3 postprocessing_PG.py
 python3 postprocessing_KG.py
 ```
 
-#### The [plot](data/plot) directory contains the statistics for the command mentioned above, which was run on the Perlmutter supercomputer.
+#### The [plot](./plot) directory contains the statistics for the command mentioned above, which was run on the Perlmutter supercomputer.
 ---
