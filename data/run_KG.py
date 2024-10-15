@@ -21,7 +21,7 @@ if len(sys.argv) > 1:
     args = parser.parse_args()
     nbatches = args.batches
 else:
-    print("Usage: preprocess.py -b <number of threads>")
+    print("Usage: run.py -b <number of batches>")
     sys.exit(0)
 
 running_threads = max_threads // nbatches

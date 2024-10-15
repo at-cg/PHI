@@ -44,15 +44,22 @@ make GUROBI_HOME=/path/to/gurobo_home (i.e. /opt/gurobi1101/linux64)
 ## Description
 PHI is a tool designed to reconstruct haploid haplotypes from low-coverage short reads using a haplotype-aware pangenome graph represented as a Directed Acyclic Graph (DAG). Additionally, a VCF file and a reference genome against which the VCF was built can be used with the script `vcf2gfa.py` to generate a pangenome graph as input. PHI uses short reads to reconstruct haploid haplotypes through two methods:
 
-1. **Integer Linear Programming (ILP)**: Enabled by passing the `-q0` flag, this uses an ILP-based formulation.
-2. **Integer Quadratic Programming (IQP)**: Enabled by passing the `-q1` flag, this is the default method and uses an IQP-based formulation.
-3. **Mixed Integer Linear Programming (MILP)**: Enabled by passing the `-q0 -m0` flag, this uses an MILP-based formulation.
-4. **Mixed Integer Quadratic Programming (MIQP)**: Enabled by passing the `-q1 -m1` flag, this uses an MIQP-based formulation.
+1. **Integer Linear Programming (ILP)**: Enabled by passing the `-q0` flag, this uses an ILP-based formulation with relaxation of binary variables in continous domain.
+2. **Integer Quadratic Programming (IQP)**: Enabled by passing the `-q1` flag, this is the default method and uses an IQP-based formulation with relaxation of binary variables in continous domain.
+3. **Integer Linear Programming (no relaxation)**: Enabled by passing the `-q0 -m0` flag, this uses an ILP formulation without relaxation of binary variables.
+4. **Integer Quadratic Programming (no relaxation)**: Enabled by passing the `-q1 -m0` flag, this uses an IQP formulation without relaxation of binary variables.
 
 The details of these formulations are described in our [paper](#publications).
 
 ## Results
-(Results will be added later)
+We benchmarked PHI (v1.0) using real illumina reads from 5 MHC haplotypes APD, DBB, MANN, QBL and SSTO, downsampled to various coverages (0.1x - 18.2x). We benchmark the runtime of the ILP and IQP based formulations and the results shows that the IQP runs faster as compated to ILP, but requires approx 1.5x memory. The scripts to reproduce the results are available [here](data).
+
+<p align="center" id="F1-score">
+    <img src="data/benchmark.png" width="700" alt="F1-score"/>
+</p>
+
+> Performance comparison between ILP and IQP, illustrating runtime and memory usage across varying
+coverage levels and haplotypes.
 
 ## Future Work
 1. We plan to add support for diploid haplotype reconstruction.

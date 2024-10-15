@@ -21,7 +21,7 @@ if len(sys.argv) > 1:
     args = parser.parse_args()
     nbatches = args.batches
 else:
-    print("Usage: preprocess.py -t <number of threads>")
+    print("Usage: run.py -b <number of batches>")
     sys.exit(0)
 
 running_threads = max_threads // nbatches
@@ -43,10 +43,10 @@ def par_run_PHI(read_cov_pair):
     ground_truth = f"Ground_truth/{read}.fasta"
     
     cmd = (
-        f"PHI -q0 -R100 -k31 -w25 -t{running_threads} "
+        f"PHI -q0 -m1 -R100 -k31 -w25 -t{running_threads} "
         f"-g data/MHC_49-MC_30_2.gfa -r {downsampled_read} "
         f"-o {output_file} > {log_file} 2>&1 && "
-        f"conda activate edlib && python3 edlib_edits.py {ground_truth} {output_file} >> {log_file}"
+        f"edlib-aligner {ground_truth} {output_file} >> {log_file}"
     )
     os.system(cmd)
 
