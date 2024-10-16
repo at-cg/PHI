@@ -3,6 +3,17 @@
 import edlib
 import argparse
 from Bio import SeqIO
+import re
+
+def compute_alignment_length(cigar):
+    # Use a regular expression to extract the numbers and letters from the CIGAR string
+    operations = re.findall(r'(\d+)([MIDNX=])', cigar)
+    # print(f"Operations: {operations}")
+    
+    # Sum the lengths for operations that contribute to the alignment length
+    alignment_length = sum(int(length) for length, op in operations if op in 'MIDNX=')
+    
+    return alignment_length
 
 def read_fasta_sequence(file):
     """Reads the first sequence from a FASTA file."""
@@ -16,9 +27,12 @@ def compute_alignment_identity(seq1, seq2):
 
     # Get the edit distance from the result
     edit_distance = result['editDistance']
+    cigar = result['cigar']
+    # print(f"Edit distance: {edit_distance}")
+    # print(f"CIGAR: {cigar}")
 
     # Compute alignment length
-    alignment_length = len(seq1)  # This can be len(seq1) or len(seq2), both sequences are aligned
+    alignment_length = compute_alignment_length(cigar)
 
     # Compute alignment identity
     if alignment_length > 0:
