@@ -22,7 +22,7 @@
 ```bash
 git clone https://github.com/at-cg/PHI
 cd PHI
-# Install dependencies and build executable
+# Install dependencies (anaconda is required)
 ./Installdeps
 export PATH="extra/bin:$PATH"
 export LD_LIBRARY_PATH="extra/lib:$LD_LIBRARY_PATH"
