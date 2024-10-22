@@ -20,21 +20,15 @@
 ### Get PHI
 
 ```bash
-git clone https://github.com/gsc74/PHI
+git clone https://github.com/at-cg/PHI
 cd PHI
-make GUROBI_HOME=/path/to/gurobo_home (i.e. /opt/gurobi1101/linux64)
+make GUROBI_HOME=/path/to/gurobi_home (i.e. /opt/gurobi1101/linux64)
+
+# test run with IQP (default)
+./PHI -t32 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
 
 # test run with ILP
 ./PHI -t32 -q0 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
-
-# test run with IQP (default)
-./PHI -t32 -q1 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
-
-# test run with MILP
-./PHI -t32 -q0 -m1 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
-
-# test run with MIQP (default)
-./PHI -t32 -q1 -m1 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
 
 # test run with vcf and reference
 ./vcf2gfa.py -v test/MHC_4.vcf.gz -r test/MHC-CHM13.0.fa.gz | gzip > test/MHC_4_vcf.gfa.gz
@@ -46,13 +40,18 @@ PHI is a tool designed to reconstruct haploid haplotypes from low-coverage short
 
 1. **Integer Linear Programming (ILP)**: Enabled by passing the `-q0` flag, this uses an ILP-based formulation with relaxation of binary variables in continous domain.
 2. **Integer Quadratic Programming (IQP)**: Enabled by passing the `-q1` flag, this is the default method and uses an IQP-based formulation with relaxation of binary variables in continous domain.
-3. **Integer Linear Programming (no relaxation)**: Enabled by passing the `-q0 -m0` flag, this uses an ILP formulation without relaxation of binary variables.
-4. **Integer Quadratic Programming (no relaxation)**: Enabled by passing the `-q1 -m0` flag, this uses an IQP formulation without relaxation of binary variables.
 
 The details of these formulations are described in our [paper](#publications).
 
 ## Results
 We benchmarked PHI (v1.0) using real illumina reads from 5 MHC haplotypes APD, DBB, MANN, QBL and SSTO, downsampled to various coverages (0.1x - 18.2x). We benchmark the runtime of the ILP and IQP based formulations and the results shows that the IQP runs faster as compated to ILP, but requires approx 1.5x memory. The scripts to reproduce the results are available [here](data).
+
+<p align="center" id="F1-score">
+    <img src="data/edit_distances.jpg" width="700" alt="F1-score"/>
+</p>
+
+> Edit distance between ground-truth and imputed MHC haplotypes generated
+from real Illumina reads at various sequencing coverages (0.1x to total coverage) using different tools.
 
 <p align="center" id="F1-score">
     <img src="data/benchmark.png" width="700" alt="F1-score"/>

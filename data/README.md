@@ -7,7 +7,7 @@ Before starting the process, ensure the following tools and datasets are availab
 
 - **Conda**: Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/)
 - **Required Tools**:
-    - edlib-align
+    - edlib-aligner
     - PHI
     - VG
     - PanGenie
