@@ -51,7 +51,7 @@ We benchmarked PHI (v1.0) using real illumina reads from 5 MHC haplotypes APD, D
 </p>
 
 > Edit distance between ground-truth and imputed MHC haplotypes generated
-from real Illumina reads at various sequencing coverages (0.1x to total coverage) using different tools.
+from real Illumina reads at various sequencing coverages (0.1x to total coverage) using different tools (PHI, VG and PanGenie).
 
 <p align="center" id="F1-score">
     <img src="data/benchmark.png" width="700" alt="F1-score"/>

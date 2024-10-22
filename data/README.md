@@ -11,7 +11,6 @@ Before starting the process, ensure the following tools and datasets are availab
     - PHI
     - VG
     - PanGenie
-    - KAGE
     - seqkit
     - bcftools (with plugins)
     - snakemake
@@ -27,13 +26,6 @@ Ensure all dependencies are installed or available via conda.
 To manage dependencies, create separate conda environments for each tool. Here are example commands:
 
 ```bash
-
-# Create environment for KAGE
-conda create -n KAGE python=3.10
-conda activate KAGE
-pip3 install numpy==1.24
-pip3 install kage-genotyper
-
 # Create environment and vcflib
 conda create -n vcflib bioconda::vcflib -y
 
@@ -99,7 +91,7 @@ python3 run_batch_13.py -b 2 # 3 haps
 
 ---
 
-## 6. Run VG, PanGenie, and KAGE
+## 6. Run VG and PanGenie
 
 ```bash
 # Running VG (-b is batch size)
@@ -107,9 +99,6 @@ python3 run_VG.py -b 2
 
 # Running PanGenie
 python3 run_PG.py -b 2
-
-# Running KAGE
-python3 run_KG.py -b 2
 ```
 
 ---
@@ -143,9 +132,6 @@ python3 postprocessing_VG.py
 
 # PanGenie
 python3 postprocessing_PG.py
-
-# KAGE
-python3 postprocessing_KG.py
 ```
 
 #### The [plot](./plot) directory contains the statistics for the command mentioned above, which was run on the Perlmutter supercomputer.
