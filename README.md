@@ -24,7 +24,8 @@ git clone https://github.com/at-cg/PHI
 cd PHI
 # Install dependencies and build executable
 ./Installdeps
-source ~/.bashrc
+export PATH="extra/bin:$PATH"
+export LD_LIBRARY_PATH="extra/lib:$LD_LIBRARY_PATH"
 make
 
 # test run with IQP (default)
@@ -36,6 +37,16 @@ make
 # test run with vcf and reference
 ./vcf2gfa.py -v test/MHC_4.vcf.gz -r test/MHC-CHM13.0.fa.gz > test/MHC_4_vcf.gfa
 ./PHI -t32 -g test/MHC_4_vcf.gfa -r test/CHM13_reads.fq.gz -o CHM13.fa
+```
+
+#### Adding Binary and Library Paths to `.bashrc`
+To ensure that the `extra/bin` and `extra/lib` directories are automatically loaded for every terminal session, you can export them to your `~/.bashrc`. This will make sure the required binaries and libraries for `PHI` are available.
+
+```bash
+# Add extra/bin and extra/lib to .bashrc
+export PATH="extra/bin:$PATH" >> ~/.bashrc
+export LD_LIBRARY_PATH="extra/lib:$LD_LIBRARY_PATH" >> ~/.bashrc
+source ~/.bashrc
 ```
 
 ## Description

@@ -89,24 +89,24 @@ cd ..
 rm -rf temp_bin
 
 
-# Define the paths
-BIN_PATH="$(pwd)/extra/bin"
-LIB_PATH="$(pwd)/extra/lib"
+# # Define the paths
+# BIN_PATH="$(pwd)/extra/bin"
+# LIB_PATH="$(pwd)/extra/lib"
 
-# Check if BIN_PATH is already in .bashrc
-if ! grep -q "$BIN_PATH" ~/.bashrc; then
-    echo "Adding $BIN_PATH to PATH in .bashrc"
-    echo "export PATH=\"$BIN_PATH:\$PATH\"" >> ~/.bashrc
-else
-    echo "$BIN_PATH is already in PATH"
-fi
+# # Check if BIN_PATH is already in .bashrc
+# if ! grep -q "$BIN_PATH" ~/.bashrc; then
+#     echo "Adding $BIN_PATH to PATH in .bashrc"
+#     echo "export PATH=\"$BIN_PATH:\$PATH\"" >> ~/.bashrc
+# else
+#     echo "$BIN_PATH is already in PATH"
+# fi
 
-# Check if LIB_PATH is already in .bashrc
-if ! grep -q "$LIB_PATH" ~/.bashrc; then
-    echo "Adding $LIB_PATH to LD_LIBRARY_PATH in .bashrc"
-    echo "export LD_LIBRARY_PATH=\"$LIB_PATH:\$LD_LIBRARY_PATH\"" >> ~/.bashrc
-else
-    echo "$LIB_PATH is already in LD_LIBRARY_PATH"
-fi
+# # Check if LIB_PATH is already in .bashrc
+# if ! grep -q "$LIB_PATH" ~/.bashrc; then
+#     echo "Adding $LIB_PATH to LD_LIBRARY_PATH in .bashrc"
+#     echo "export LD_LIBRARY_PATH=\"$LIB_PATH:\$LD_LIBRARY_PATH\"" >> ~/.bashrc
+# else
+#     echo "$LIB_PATH is already in LD_LIBRARY_PATH"
+# fi
 
-echo "Done! Paths are now updated and applied. Please source ~/.bashrc to apply the changes."
+# echo "Done! Paths are now updated and applied. Please source ~/.bashrc to apply the changes."
