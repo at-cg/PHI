@@ -1,8 +1,8 @@
 #!/usr/bin/bash
 
 source $HOME/.bashrc
-conda create -n gbwt_make -c conda-forge gxx_linux-64=13.2.0 make libstdcxx-ng cmake zlib bzip2 xz lz4 zstd -y
-conda activate gbwt_make
+conda create -n PHI -c conda-forge gxx_linux-64=13.2.0 make libstdcxx-ng cmake zlib bzip2 xz lz4 zstd -y
+conda activate PHI
 
 rm -rf ../extra
 rm -rf temp_bin
@@ -24,7 +24,7 @@ cd htslib
 git submodule update --init --recursive
 autoreconf -i
 ./configure --prefix=$(pwd)/../../extra
-make
+make -j4
 make install
 
 # samtools
@@ -32,7 +32,7 @@ cd ../samtools
 autoheader
 autoconf -Wno-syntax
 ./configure --prefix=$(pwd)/../../extra
-make
+make -j4
 make install
 cd ..
 
@@ -48,29 +48,28 @@ wget https://zlib.net/current/zlib.tar.gz
 tar -xvf zlib.tar.gz
 cd zlib-*
 ./configure --prefix=$(pwd)/../../extra
-make
+make -j4
 make install
 cd ..
 
 cd sdsl-lite
 cd build
-sh build.sh
+cmake .. && make -j4
 cd ../..
 
 cd libhandlegraph
 mkdir -p build
 cd build
-cmake ..
-make
+cmake .. && make -j4 CPPFLAGS="-I../sdsl-lite/include" LDFLAGS="-L../sdsl-lite/build/lib/ -L../sdsl-lite/build/external/libdivsufsort/lib/"
 cd ../..
 
 cd gbwt
-make
+make -j4 CPPFLAGS="-I../sdsl-lite/include -I../libhandlegraph/src/include/" LDFLAGS="-L../sdsl-lite/build/lib/ -L../sdsl-lite/build/external/libdivsufsort/lib/ -L../libhandlegraph/build/"
 cd ..
 
 cd gbwtgraph
 make CPPFLAGS="-I../sdsl-lite/include -I../gbwt/include -I../libhandlegraph/src/include/" \
-     LDFLAGS="-L../gbwt/lib -L../sdsl-lite/build/lib/ -L../sdsl-lite/build/external/libdivsufsort/lib/ -L../libhandlegraph/build/"
+     LDFLAGS="-L../gbwt/lib -L../sdsl-lite/build/lib/ -L../sdsl-lite/build/external/libdivsufsort/lib/ -L../libhandlegraph/build/" -j4
 
 cp bin/gfa2gbwt ../../extra/bin/
 cp lib/* ../../extra/lib/
