@@ -16,8 +16,8 @@
 
 
 static ko_longopt_t long_options[] = {
-	{ "version",      ko_no_argument,       300 },
-	{ 0, 0, 0 }
+    { const_cast<char*>("version"), ko_no_argument, 300 },
+    { 0, 0, 0 }
 };
 
 int main(int argc, char *argv[]) {
