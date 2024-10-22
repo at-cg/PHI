@@ -1,8 +1,8 @@
-CXX = g++ -std=c++2a	
+CXX = g++ -std=c++2a
 CXXFLAGS = -fopenmp -pthread -march=native -mtune=native -O3 -lgurobi_c++ -lgurobi110 -lm -lz -lpthread -ldl
 GUROBI_HOME = /home/ghanshyam/opt/gurobi1101/linux64
-INLCLUDES = -I$(GUROBI_HOME)/include
-LIBS = -L$(GUROBI_HOME)/lib
+INLCLUDES = -Iextra/include
+LIBS = -Lextra/lib
 
 all: PHI
 

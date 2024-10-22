@@ -22,7 +22,10 @@
 ```bash
 git clone https://github.com/at-cg/PHI
 cd PHI
-make GUROBI_HOME=/path/to/gurobi_home (i.e. /opt/gurobi1101/linux64)
+# Install dependencies and build executable
+./Installdeps
+source ~/.bashrc
+make
 
 # test run with IQP (default)
 ./PHI -t32 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
@@ -31,8 +34,8 @@ make GUROBI_HOME=/path/to/gurobi_home (i.e. /opt/gurobi1101/linux64)
 ./PHI -t32 -q0 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
 
 # test run with vcf and reference
-./vcf2gfa.py -v test/MHC_4.vcf.gz -r test/MHC-CHM13.0.fa.gz | gzip > test/MHC_4_vcf.gfa.gz
-./PHI -t32 -g test/MHC_4_vcf.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
+./vcf2gfa.py -v test/MHC_4.vcf.gz -r test/MHC-CHM13.0.fa.gz > test/MHC_4_vcf.gfa
+./PHI -t32 -g test/MHC_4_vcf.gfa -r test/CHM13_reads.fq.gz -o CHM13.fa
 ```
 
 ## Description
