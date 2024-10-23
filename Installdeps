@@ -9,6 +9,7 @@ rm -rf temp_bin
 mkdir -p temp_bin
 cd temp_bin
 mkdir -p ../extra
+mkdir -p ../extra/plugins
 mkdir -p ../extra/lib
 mkdir -p ../extra/bin
 mkdir -p ../extra/include
@@ -18,6 +19,7 @@ git clone https://github.com/vgteam/libhandlegraph.git
 git clone https://github.com/jltsiren/gbwt.git
 git clone https://github.com/samtools/htslib.git
 git clone https://github.com/samtools/samtools.git
+git clone https://github.com/samtools/bcftools.git
 
 # htslib
 cd htslib
@@ -34,6 +36,13 @@ autoconf -Wno-syntax
 ./configure --prefix=$(pwd)/../../extra
 make -j4
 make install
+cd ..
+
+# bcftools
+cd bcftools
+make -j4
+cp bcftools ../../extra/bin/
+cp -r plugins/* ../../extra/plugins/
 cd ..
 
 wget https://packages.gurobi.com/11.0/gurobi11.0.3_linux64.tar.gz
