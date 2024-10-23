@@ -60,8 +60,8 @@ ax3.grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
 # Add a single legend for all plots at the top with the updated label
 handles, labels = ax1.get_legend_handles_labels()
 # fig.legend(handles, labels, title='Number of reference haplotypes', loc='upper center', ncol=5, bbox_to_anchor=(0.5, 1.05), fontsize=10)
-plt.text(0.34, 0.97, 'Number of reference haplotypes', fontsize=10, transform=fig.transFigure, ha='right')
-fig.legend(handles, labels, loc='upper center', ncol=5, bbox_to_anchor=(0.53, 1.08), fontsize=10)
+plt.text(0.31, 0.95, 'Number of reference haplotypes', fontsize=11, transform=fig.transFigure, ha='right')
+fig.legend(handles, labels, loc='upper center', ncol=5, bbox_to_anchor=(0.53, 1.08), fontsize=12)
 
 # Adjust layout to fit the legend and plots
 plt.tight_layout(rect=[0, 0, 1, 0.95])

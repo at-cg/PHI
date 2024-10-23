@@ -59,10 +59,10 @@ plot_data = [(phi_ilp_runtime, 'Runtime (hours)'), (phi_ilp_no_relax_runtime, No
              (phi_rss, None), (phi_iqp_no_relax_rss, None)]
 
 # Titles for each subplot
-titles = ['(A) ILP', '(B) ILP (no relaxation)', 
-          '(C) IQP', '(D) IQP (no relaxation)', 
-          '(E) ILP', '(F) ILP (no relaxation)', 
-          '(G) IQP', '(H) IQP (no relaxation)']
+titles = ['(A) ILP (with relaxation)', '(B) ILP (no relaxation)', 
+          '(C) IQP (with relaxation)', '(D) IQP (no relaxation)', 
+          '(E) ILP (with relaxation)', '(F) ILP (no relaxation)', 
+          '(G) IQP (with relaxation)', '(H) IQP (no relaxation)']
 
 # Width of the bars
 bar_width = 0.15

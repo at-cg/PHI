@@ -47,25 +47,26 @@ for i, read in enumerate(reads):
     axes[i].bar(x, edit_distances_vg_log, width, label='VG', zorder=3)
     axes[i].bar(x + width, edit_distances_pan_genie_log, width, label='PanGenie', zorder=3)
     
-    axes[i].set_ylabel('Edit distance', fontsize=12)
+    axes[i].set_ylabel('Edit\ndistance', fontsize=13)
     axes[i].set_xticks(x)
     
     # Adjust the x-tick labels for the last coverage
     new_cov = [last_cov[i] if cov == '15x' else cov for cov in coverages]
-    axes[i].set_xticklabels(new_cov, fontsize=12)
+    axes[i].set_xticklabels(new_cov, fontsize=13)
     axes[i].set_yticks(y_ticks)
-    axes[i].set_yticklabels([f'$10^{int(tick)}$' for tick in y_ticks], fontsize=11)
-    axes[i].set_xlabel('Coverage', fontsize=12)
+    axes[i].set_yticklabels([f'$10^{int(tick)}$' for tick in y_ticks], fontsize=13)
+    axes[i].set_xlabel('Coverage', fontsize=13)
     axes[i].grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
     
     # Add the title inside the bar plot
-    axes[i].set_title(f'{alphabet_labels[i]} {read}', fontsize=12, loc='center')
+    # axes[i].set_title(f'{alphabet_labels[i]} {read}', fontsize=12, loc='center')
+    axes[i].set_title(f'{alphabet_labels[i]} {read}', fontsize=13, loc='center', fontweight='bold')
 
-axes[-1].set_xlabel('Coverage', fontsize=12)
+axes[-1].set_xlabel('Coverage', fontsize=13)
 
 # Adding the legend at the top of the first plot
 handles, labels = axes[0].get_legend_handles_labels()
-fig.legend(handles, labels, loc='upper right', fontsize=12, bbox_to_anchor=(1.22, 0.5), title='Method', title_fontsize='12')
+fig.legend(handles, labels, loc='upper right', fontsize=14, bbox_to_anchor=(1.23, 0.5), title='Method', title_fontsize='14')
 
 # Adjust layout to add space between plots and ensure labels are visible
 plt.subplots_adjust(hspace=0.5)
