@@ -44,8 +44,8 @@ To ensure that the `extra/bin` and `extra/lib` directories are automatically loa
 
 ```bash
 # Add extra/bin and extra/lib to .bashrc
-export PATH="extra/bin:$PATH" >> ~/.bashrc
-export LD_LIBRARY_PATH="extra/lib:$LD_LIBRARY_PATH" >> ~/.bashrc
+echo 'export PATH="extra/bin:$PATH"' >> ~/.bashrc
+echo 'export LD_LIBRARY_PATH="extra/lib:$LD_LIBRARY_PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
