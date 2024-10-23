@@ -24,8 +24,8 @@ git clone https://github.com/at-cg/PHI
 cd PHI
 # Install dependencies (anaconda is required)
 ./Installdeps
-export PATH="extra/bin:$PATH"
-export LD_LIBRARY_PATH="extra/lib:$LD_LIBRARY_PATH"
+export PATH="$(pwd)/extra/bin:$PATH"
+export LD_LIBRARY_PATH="$(pwd)/extra/lib:$LD_LIBRARY_PATH"
 make
 
 # test run with IQP (default)
@@ -35,8 +35,8 @@ make
 ./PHI -t32 -q0 -g test/MHC_4.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
 
 # test run with vcf and reference
-./vcf2gfa.py -v test/MHC_4.vcf.gz -r test/MHC-CHM13.0.fa.gz > test/MHC_4_vcf.gfa
-./PHI -t32 -g test/MHC_4_vcf.gfa -r test/CHM13_reads.fq.gz -o CHM13.fa
+./vcf2gfa.py -v test/MHC_4.vcf.gz -r test/MHC-CHM13.0.fa.gz | bgzip > test/MHC_4_vcf.gfa.gz
+./PHI -t32 -g test/MHC_4_vcf.gfa.gz -r test/CHM13_reads.fq.gz -o CHM13.fa
 ```
 
 #### Adding Binary and Library Paths to `.bashrc`
@@ -44,8 +44,8 @@ To ensure that the `extra/bin` and `extra/lib` directories are automatically loa
 
 ```bash
 # Add extra/bin and extra/lib to .bashrc
-echo 'export PATH="extra/bin:$PATH"' >> ~/.bashrc
-echo 'export LD_LIBRARY_PATH="extra/lib:$LD_LIBRARY_PATH"' >> ~/.bashrc
+echo 'export PATH="$(pwd)/extra/bin:$PATH"' >> ~/.bashrc
+echo 'export LD_LIBRARY_PATH="$(pwd)/extra/lib:$LD_LIBRARY_PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
