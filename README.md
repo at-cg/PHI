@@ -9,20 +9,14 @@
 
 ### Prerequisites
 
-#### Before using PHI, ensure you have the following dependencies installed:
-
-1. **GCC 9 or later** - [GCC](https://gcc.gnu.org/)
-2. **Zlib** - [zlib](https://zlib.net/)
-3. **Gurobi** - [Gurobi](https://www.gurobi.com)
-4. **VG Toolkit** - [vg](https://github.com/vgteam/vg)
-5. **GBWTGraph** - [gfa2gbwt](https://github.com/jltsiren/gbwtgraph)
+Before using PHI, ensure that **Miniforge** is installed: [Miniforge Installation Guide](https://github.com/conda-forge/miniforge).
 
 ### Get PHI
 
 ```bash
 git clone https://github.com/at-cg/PHI
 cd PHI
-# Install dependencies (anaconda is required)
+# Install dependencies (Miniforge is required)
 ./Installdeps
 export PATH="$(pwd)/extra/bin:$PATH"
 export LD_LIBRARY_PATH="$(pwd)/extra/lib:$LD_LIBRARY_PATH"
