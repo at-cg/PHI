@@ -59,7 +59,7 @@ PHI reconstructs haploid haplotypes from low-coverage sequencing data (short-rea
 
 PHI outputs the haplotype sequence associated with the optimal inferred path from the graph in FASTA format.
 
-PHI employs two integer programming formulations, ILP and IQP, and uses the [Gurobi Optimizer](https://www.gurobi.com) under the [Academic WLS License](https://www.gurobi.com/academia/academic-program-and-licenses/) to solve these formulations optimally. Details of these formulations are described in our [paper](#publications).
+PHI employs two integer programming formulations, ILP and IQP, and uses the [Gurobi optimizer](https://www.gurobi.com) to solve these formulations optimally. Details of these formulations are described in our [paper](#publications).
 
 
 ## <a name="results"></a>Results
@@ -77,7 +77,7 @@ We benchmarked PHI (v1.0) using real Illumina short-reads from five MHC haplotyp
 
 > Performance comparison between ILP and IQP, illustrating runtime and memory usage across different coverage levels and haplotypes.
 
-The scripts to reproduce the results are available [here](data).
+In our experiments, we used the [Gurobi Academic WLS License](https://www.gurobi.com/academia/academic-program-and-licenses/). The scripts to reproduce the results are available [here](data).
 
 
 ## <a name="future"></a>Future Work
