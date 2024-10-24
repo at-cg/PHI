@@ -55,7 +55,7 @@ source ~/.bashrc
 ## <a name="intro"></a>Introduction
 PHI reconstructs haploid haplotypes from low-coverage sequencing data (short-reads or long-reads) using a pangenome graph represented as a Directed Acyclic Graph (DAG). Users can provide a pangenome reference as either:
 - Graph Format ([GFA v1.1](http://gfa-spec.github.io/GFA-spec/GFA1.html#gfa-11)): A sequence graph-based representation of the pangenome graph.
-- Variant Call Format (VCF): A list of multi-sample, multi-allelic phased variants along with a reference genome.
+- Variant Call Format ([VCF](https://samtools.github.io/hts-specs/VCFv4.2.pdf)): A list of multi-sample, multi-allelic phased variants along with a reference genome.
 
 PHI outputs the haplotype sequence associated with the optimal inferred path from the graph in FASTA format.
 
@@ -69,11 +69,10 @@ We benchmarked PHI (v1.0) using real Illumina short-reads from five MHC haplotyp
     <img src="data/edit_distances.jpg" width="700" alt="F1-score"/>
 </p>
 
-> Edit distance between ground-truth and imputed MHC haplotypes generated
-from real Illumina reads at various sequencing coverages (0.1x to total coverage) using different tools (PHI, VG and PanGenie).
+> Edit distance between ground-truth and imputed MHC haplotypes generated from real Illumina reads at various sequencing coverages (0.1× to full coverage) using different tools (PHI, VG, and PanGenie).
 
 <p align="center" id="F1-score">
-    <img src="data/benchmark.png" width="700" alt="F1-score"/>
+    <img src="data/phi_vs_phi_ilp.jpg" width="700" alt="F1-score"/>
 </p>
 
 > Performance comparison between ILP and IQP, illustrating runtime and memory usage across different coverage levels and haplotypes.
