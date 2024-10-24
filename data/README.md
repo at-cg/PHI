@@ -166,6 +166,4 @@ python3 postprocessing_VG.py
 # PanGenie
 python3 postprocessing_PG.py
 ```
-
-#### The [plot](./plot) directory contains the statistics for the command mentioned above, which was run on the Perlmutter supercomputer.
 ---
