@@ -1,5 +1,5 @@
 #include <string.h>
-#include "AApriv.h"
+#include "PHIpriv.h"
 
 void mg_idxopt_init(mg_idxopt_t *io)
 {

@@ -833,7 +833,7 @@ void ILP_index::ILP_function(std::vector<std::pair<std::string, std::string>> &i
             }
         } else
         {
-            fprintf(stderr, "[M::%s::%.3f*%.2f] QCLP model started\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
+            fprintf(stderr, "[M::%s::%.3f*%.2f] QP model started\n", __func__, realtime() - mg_realtime0, cputime() / (realtime() - mg_realtime0));
             // Kmer constraints
             for (int32_t i = 0; i < count_sp_r; i++) {
                 GRBQuadExpr kmer_expr;

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include "gfa-priv.h"
-#include "AApriv.h"
+#include "PHIpriv.h"
 #include "ketopt.h"
 #include <zlib.h>
 #include "ILP_index.h"

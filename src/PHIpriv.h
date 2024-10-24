@@ -1,5 +1,5 @@
-#ifndef MGPRIV_H
-#define MGPRIV_H
+#ifndef PHIPRIV_H
+#define PHIPRIV_H
 
 #include <stdlib.h>
 #include "PHI.h"
