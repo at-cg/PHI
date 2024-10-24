@@ -11,7 +11,7 @@
 
 Before using PHI, ensure that **Miniforge** is installed: [Miniforge Installation Guide](https://github.com/conda-forge/miniforge).
 
-### Get PHI
+## <a name="get_phi"></a>Get PHI
 
 ```bash
 git clone https://github.com/at-cg/PHI
@@ -43,16 +43,27 @@ echo 'export LD_LIBRARY_PATH="$(pwd)/extra/lib:$LD_LIBRARY_PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-## Description
-PHI is a tool designed to reconstruct haploid haplotypes from low-coverage short reads using a haplotype-aware pangenome graph represented as a Directed Acyclic Graph (DAG). Additionally, a VCF file and a reference genome against which the VCF was built can be used with the script `vcf2gfa.py` to generate a pangenome graph as input. PHI uses short reads to reconstruct haploid haplotypes through two methods:
+## Table of Contents
 
-1. **Integer Linear Programming (ILP)**: Enabled by passing the `-q0` flag, this uses an ILP-based formulation with relaxation of binary variables in continous domain.
-2. **Integer Quadratic Programming (IQP)**: Enabled by passing the `-q1` flag, this is the default method and uses an IQP-based formulation with relaxation of binary variables in continous domain.
+- [Getting Started](#started)
+- [Get PHI](#get_phi)
+- [Introduction](#intro)
+- [Results](#results)
+- [Future work](#future)
+- [Publications](#pub)
 
-The details of these formulations are described in our [paper](#publications).
+## <a name="intro"></a>Introduction
+PHI reconstructs haploid haplotypes from low-coverage sequencing data (short-reads or long-reads) using a pangenome graph represented as a Directed Acyclic Graph (DAG). Users can provide a pangenome reference as either:
+- Graph Format ([GFA v1.1](http://gfa-spec.github.io/GFA-spec/GFA1.html#gfa-11)): A sequence graph-based representation of the pangenome graph.
+- Variant Call Format (VCF): A list of multi-sample, multi-allelic phased variants along with a reference genome.
 
-## Results
-We benchmarked PHI (v1.0) using real illumina reads from 5 MHC haplotypes APD, DBB, MANN, QBL and SSTO, downsampled to various coverages (0.1x - 18.2x). We benchmark the runtime of the ILP and IQP based formulations and the results shows that the IQP runs faster as compated to ILP, but requires approx 1.5x memory. The scripts to reproduce the results are available [here](data).
+PHI outputs the haplotype sequence associated with the optimal inferred path from the graph in FASTA format.
+
+PHI employs two integer programming formulations, ILP and IQP, and uses the [Gurobi Optimizer](https://www.gurobi.com) under the [Academic WLS License](https://www.gurobi.com/academia/academic-program-and-licenses/) to solve these formulations optimally. Details of these formulations are described in our [paper](#publications).
+
+
+## <a name="results"></a>Results
+We benchmarked PHI (v1.0) using real Illumina short-reads from five MHC haplotypes: APD, DBB, MANN, QBL, and SSTO from [Houwaart et al. (2022)](https://doi.org/10.1111/tan.15020). These datasets were downsampled to various coverages ranging from 0.1x to 18.2x. Using [Minigraph-Cactus](https://github.com/ComparativeGenomicsToolkit/cactus/tree/master), we constructed a haplotype-resolved pangenome graph comprising 49 complete [MHC sequences](https://doi.org/10.5281/zenodo.6617246). To assess the accuracy of PHI, we evaluated the edit distance between the imputed haplotypes and the ground-truth haplotypes. Additionally, we benchmarked the runtime and memory usage of the ILP and IQP-based formulations. The results show that the IQP method runs faster than the ILP method but requires approximately 1.5x more memory.
 
 <p align="center" id="F1-score">
     <img src="data/edit_distances.jpg" width="700" alt="F1-score"/>
@@ -65,11 +76,15 @@ from real Illumina reads at various sequencing coverages (0.1x to total coverage
     <img src="data/benchmark.png" width="700" alt="F1-score"/>
 </p>
 
-> Performance comparison between ILP and IQP, illustrating runtime and memory usage across varying
-coverage levels and haplotypes.
+> Performance comparison between ILP and IQP, illustrating runtime and memory usage across different coverage levels and haplotypes.
 
-## Future Work
-1. We plan to add support for diploid haplotype reconstruction.
+The scripts to reproduce the results are available [here](data).
 
-## Publications
-(To be added)
+
+## <a name="future"></a>Future Work
+- We plan to add support for diploid haplotype reconstruction.
+- Improve scaling to larger pangenome graphs.
+
+
+## <a name="pub"></a>Publications
+- **Ghanshyam Chandra, Md Helal Hossen, Stephan Scholz, Alexander T Dilthey, Daniel Gibney and Chirag Jain**. "[Integer programming framework for pangenome-based genome inference](https://www.biorxiv.org/)". *bioRxiv* 2024.
