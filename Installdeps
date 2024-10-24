@@ -45,7 +45,7 @@ cp bcftools ../../extra/bin/
 cp -r plugins/* ../../extra/plugins/
 cd ..
 
-wget https://packages.gurobi.com/11.0/gurobi11.0.2_linux64.tar.gz
+wget --no-check-certificate https://packages.gurobi.com/11.0/gurobi11.0.2_linux64.tar.gz
 tar -xvf gurobi11.0.2_linux64.tar.gz
 cd gurobi1102/linux64
 cp lib/* ../../../extra/lib/
@@ -53,7 +53,7 @@ cp include/* ../../../extra/include/
 cd ../../
 
 # zlib
-wget https://zlib.net/current/zlib.tar.gz
+wget --no-check-certificate https://zlib.net/current/zlib.tar.gz
 tar -xvf zlib.tar.gz
 cd zlib-*
 ./configure --prefix=$(pwd)/../../extra
