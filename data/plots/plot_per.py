@@ -54,12 +54,12 @@ for ax, (data, ylabel), title in zip(axes.flatten(), plot_data, titles):
     for i, label in enumerate(legend_labels):
         ax.bar(x_indices + i * bar_width, data.iloc[i], bar_width, label=label, zorder=3)
     
-    ax.set_title(title, fontsize=13)
-    ax.set_xlabel('Coverage', fontsize=13)
+    ax.set_title(title, fontsize=14)
+    ax.set_xlabel('Coverage', fontsize=14)
     ax.set_xticks(x_indices + bar_width * (len(legend_labels) / 2 - 0.5))
-    ax.set_xticklabels(coverage, fontsize=13)
+    ax.set_xticklabels(coverage, fontsize=14)
     ax.grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
-    ax.tick_params(axis='y', labelsize=13)
+    ax.tick_params(axis='y', labelsize=14)
 
     # Set y-axis limits based on max values
     if '(A)' in title or '(B)' in title:
@@ -69,17 +69,17 @@ for ax, (data, ylabel), title in zip(axes.flatten(), plot_data, titles):
     
     # Only add y-axis labels to left plots
     if ylabel is not None:
-        ax.set_ylabel(ylabel, fontsize=13)
+        ax.set_ylabel(ylabel, fontsize=14)
 
 # Add the legend for the labels without the title
 legend = fig.legend(legend_labels, loc='upper center', ncol=5, fontsize=13, bbox_to_anchor=(0.5, 1.02))
 
 # Manually add a title on the left using plt.text, positioned relative to the figure
-plt.text(0.14, 0.97, 'MHC haplotype', fontsize=13, transform=fig.transFigure, ha='center')
+plt.text(0.16, 0.97, 'Haplotype', fontsize=14, transform=fig.transFigure, ha='center')
 
 # Adjust layout
 plt.tight_layout()
-plt.subplots_adjust(top=0.88, wspace=0.15, hspace=0.5)  # Added hspace for space between top and bottom plots
+plt.subplots_adjust(top=0.88, wspace=0.15, hspace=0.6)  # Added hspace for space between top and bottom plots
 
 # Save the figure
 plt.savefig('phi_vs_phi_ilp.pdf', bbox_inches='tight', dpi=1200, format='pdf')

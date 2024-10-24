@@ -29,7 +29,7 @@ fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11, 2))
 for i, cov in enumerate(coverage_levels):
     ax1.bar(x - (2-i)*width, np.log10(edit_distances[cov]), width, label=legend_labels[i], color=plt.get_cmap('tab10')(i), zorder=3)
 
-ax1.set_xlabel('MHC haplotypes', fontsize=11)
+ax1.set_xlabel('Haplotype', fontsize=11)
 ax1.set_ylabel('Edit distance', fontsize=11)
 ax1.set_yticks(np.arange(0, 6, 1))
 ax1.set_yticklabels([f'$10^{i}$' for i in range(6)])
@@ -41,7 +41,7 @@ ax1.grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
 for i, cov in enumerate(coverage_levels):
     ax2.bar(x - (2-i)*width, runtimes[cov], width, label=legend_labels[i], color=plt.get_cmap('tab10')(i), zorder=3)
 
-ax2.set_xlabel('MHC haplotypes', fontsize=11)
+ax2.set_xlabel('Haplotype', fontsize=11)
 ax2.set_ylabel('Runtime (hours)', fontsize=11)
 ax2.set_xticks(x)
 ax2.set_xticklabels(haplotypes, fontsize=11, rotation=45)
@@ -51,7 +51,7 @@ ax2.grid(axis='y', linestyle='--', alpha=0.6, zorder=0)
 for i, cov in enumerate(coverage_levels):
     ax3.bar(x - (2-i)*width, memory_usages[cov], width, label=legend_labels[i], color=plt.get_cmap('tab10')(i), zorder=3)
 
-ax3.set_xlabel('MHC haplotypes', fontsize=11)
+ax3.set_xlabel('Haplotype', fontsize=11)
 ax3.set_ylabel('Memory usage (GB)', fontsize=11)
 ax3.set_xticks(x)
 ax3.set_xticklabels(haplotypes, fontsize=11, rotation=45)
