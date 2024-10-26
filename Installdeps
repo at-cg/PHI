@@ -1,0 +1,120 @@
+#!/usr/bin/bash
+
+source $HOME/.bashrc
+conda create -n PHI -c conda-forge gxx_linux-64=13.2.0 make libstdcxx-ng cmake zlib bzip2 xz lz4 zstd -y
+conda activate PHI
+
+rm -rf ../extra
+rm -rf temp_bin
+mkdir -p temp_bin
+cd temp_bin
+mkdir -p ../extra
+mkdir -p ../extra/plugins
+mkdir -p ../extra/lib
+mkdir -p ../extra/bin
+mkdir -p ../extra/include
+git clone https://github.com/jltsiren/gbwtgraph.git
+git clone https://github.com/vgteam/sdsl-lite.git
+git clone https://github.com/vgteam/libhandlegraph.git
+git clone https://github.com/jltsiren/gbwt.git
+git clone https://github.com/samtools/htslib.git
+git clone https://github.com/samtools/samtools.git
+git clone https://github.com/samtools/bcftools.git
+
+# htslib
+cd htslib
+git submodule update --init --recursive
+autoreconf -i
+./configure --prefix=$(pwd)/../../extra
+make -j4
+make install
+
+# samtools
+cd ../samtools
+autoheader
+autoconf -Wno-syntax
+./configure --prefix=$(pwd)/../../extra
+make -j4
+make install
+cd ..
+
+# bcftools
+cd bcftools
+make -j4
+cp bcftools ../../extra/bin/
+cp -r plugins/* ../../extra/plugins/
+cd ..
+
+wget --no-check-certificate https://packages.gurobi.com/11.0/gurobi11.0.2_linux64.tar.gz
+tar -xvf gurobi11.0.2_linux64.tar.gz
+cd gurobi1102/linux64
+cp lib/* ../../../extra/lib/
+cp include/* ../../../extra/include/
+cd ../../
+
+# zlib
+wget --no-check-certificate https://zlib.net/current/zlib.tar.gz
+tar -xvf zlib.tar.gz
+cd zlib-*
+./configure --prefix=$(pwd)/../../extra
+make -j4
+make install
+cd ..
+
+cd sdsl-lite
+cd build
+cmake .. && make -j4
+cd ../..
+
+cd libhandlegraph
+mkdir -p build
+cd build
+cmake .. && make -j4 CPPFLAGS="-I../sdsl-lite/include" LDFLAGS="-L../sdsl-lite/build/lib/ -L../sdsl-lite/build/external/libdivsufsort/lib/"
+cd ../..
+
+cd gbwt
+make -j4 CPPFLAGS="-I../sdsl-lite/include -I../libhandlegraph/src/include/" LDFLAGS="-L../sdsl-lite/build/lib/ -L../sdsl-lite/build/external/libdivsufsort/lib/ -L../libhandlegraph/build/"
+cd ..
+
+cd gbwtgraph
+make CPPFLAGS="-I../sdsl-lite/include -I../gbwt/include -I../libhandlegraph/src/include/" \
+     LDFLAGS="-L../gbwt/lib -L../sdsl-lite/build/lib/ -L../sdsl-lite/build/external/libdivsufsort/lib/ -L../libhandlegraph/build/" -j4
+
+cp bin/gfa2gbwt ../../extra/bin/
+cp lib/* ../../extra/lib/
+cd ..
+cp gbwt/lib/* ../extra/lib/
+cp sdsl-lite/build/lib/* ../extra/lib/
+cp sdsl-lite/build/external/libdivsufsort/lib/* ../extra/lib/
+cp libhandlegraph/build/libhandlegraph.a ../extra/lib/
+cp libhandlegraph/build/libhandlegraph.so ../extra/lib/
+
+
+# get vg
+wget https://github.com/vgteam/vg/releases/download/v1.60.0/vg -O ../extra/bin/vg
+chmod +x ../extra/bin/vg
+cd ..
+rm -rf temp_bin
+
+
+# # Define the paths
+# BIN_PATH="$(pwd)/extra/bin"
+# LIB_PATH="$(pwd)/extra/lib"
+
+# # Check if BIN_PATH is already in .bashrc
+# if ! grep -q "$BIN_PATH" ~/.bashrc; then
+#     echo "Adding $BIN_PATH to PATH in .bashrc"
+#     echo "export PATH=\"$BIN_PATH:\$PATH\"" >> ~/.bashrc
+# else
+#     echo "$BIN_PATH is already in PATH"
+# fi
+
+# # Check if LIB_PATH is already in .bashrc
+# if ! grep -q "$LIB_PATH" ~/.bashrc; then
+#     echo "Adding $LIB_PATH to LD_LIBRARY_PATH in .bashrc"
+#     echo "export LD_LIBRARY_PATH=\"$LIB_PATH:\$LD_LIBRARY_PATH\"" >> ~/.bashrc
+# else
+#     echo "$LIB_PATH is already in LD_LIBRARY_PATH"
+# fi
+
+# echo "Done! Paths are now updated and applied. Please source ~/.bashrc to apply the changes."
