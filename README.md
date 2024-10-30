@@ -78,9 +78,9 @@ The scripts to reproduce the results are available [here](data).
 
 
 ## <a name="future"></a>Future Work
-- Add support for diploid haplotype estimation.
+- Add support for diploid genome estimation.
 - Scale to pangenome graphs having larger number of genomes.
 
 
 ## <a name="pub"></a>Publications
-- **Ghanshyam Chandra, Md Helal Hossen, Stephan Scholz, Alexander T Dilthey, Daniel Gibney and Chirag Jain**. "[Integer programming framework for pangenome-based genome inference](https://www.biorxiv.org/)". *bioRxiv* 2024.
+- **Ghanshyam Chandra, Md Helal Hossen, Stephan Scholz, Alexander T Dilthey, Daniel Gibney and Chirag Jain**. "[Integer programming framework for pangenome-based genome inference](https://doi.org/10.1101/2024.10.27.620212)". *bioRxiv* 2024.
