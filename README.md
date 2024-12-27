@@ -83,4 +83,4 @@ The scripts to reproduce the results are available [here](data).
 
 
 ## <a name="pub"></a>Publications
-- **Ghanshyam Chandra, Md Helal Hossen, Stephan Scholz, Alexander T Dilthey, Daniel Gibney and Chirag Jain**. "[Integer programming framework for pangenome-based genome inference](https://doi.org/10.1101/2024.10.27.620212)". *bioRxiv* 2024.
+- **Ghanshyam Chandra, Md Helal Hossen, Stephan Scholz, Alexander T Dilthey, Daniel Gibney and Chirag Jain**. "[Integer programming framework for pangenome-based genome inference](https://doi.org/10.1101/2024.10.27.620212)". *RECOMB* 2025.
