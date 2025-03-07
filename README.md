@@ -40,6 +40,24 @@ echo 'export LD_LIBRARY_PATH="$(pwd)/extra/lib:$LD_LIBRARY_PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
+### Using the Singularity/Apptainer definition file
+The Singularity.PHI1.0.def can be used to build an image for stand alone use of PHI
+
+#### Building
+You need to be root OR having the right to build
+
+```bash
+git clone https://github.com/at-cg/PHI
+cd PHI
+singularity build Singularity.PHI1.0.def Singularity.PHI1.0.img
+```
+### Running
+To run the container, simply type:
+
+```bash
+singularity run Singularity.PHI1.0.def PHI
+̀```
+
 ## Table of Contents
 
 - [Getting Started](#started)
