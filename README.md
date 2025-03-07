@@ -56,7 +56,7 @@ To run the container, simply type:
 
 ```bash
 singularity run Singularity.PHI1.0.def PHI
-̀```
+```
 
 ## Table of Contents
 
