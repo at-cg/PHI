@@ -1,0 +1,197 @@
+Bootstrap: docker
+From: ubuntu:22.04
+%help
+    Container for PHI v.1.0
+    https://github.com/at-cg/PHI
+
+    Includes 
+        PHI
+        HTSlib
+        Samtools
+        BCFtools
+        sdsl-lite
+        libhandlegraph
+        gbwt
+        gbwtgraph
+        gurobi
+        vg
+        
+    Licensed by CC-BY
+
+
+%labels
+    VERSION "PHI v.1.0"
+    Maintainer Francois Sabot <francois.sabot@ird.fr>
+    March, 2025
+
+%post
+    # faster apt downloads
+    export DEBIAN_FRONTEND=noninteractive
+    export LC_ALL=C
+    (
+        . /etc/os-release
+        cat << _EOF_ > mirror.txt
+deb mirror://mirrors.ubuntu.com/mirrors.txt ${UBUNTU_CODENAME} main restricted universe multiverse
+deb mirror://mirrors.ubuntu.com/mirrors.txt ${UBUNTU_CODENAME}-updates main restricted universe multiverse
+deb mirror://mirrors.ubuntu.com/mirrors.txt ${UBUNTU_CODENAME}-backports main restricted universe multiverse
+deb mirror://mirrors.ubuntu.com/mirrors.txt ${UBUNTU_CODENAME}-security main restricted universe multiverse
+
+_EOF_
+        mv /etc/apt/sources.list /etc/apt/sources.list.bak
+        cat mirror.txt /etc/apt/sources.list.bak > /etc/apt/sources.list
+    )
+
+    # apt dependencies
+    apt update
+    apt install -y \
+    	apt-utils \
+        autoconf \
+        automake \
+        gcc \
+        build-essential \
+        software-properties-common \
+        tar \
+        unzip \
+        wget \
+        zlib1g-dev \
+        sudo \
+        cmake \
+        libstdc++-12-dev \
+        bzip2 \
+        xz-utils \
+        lz4 \
+        zstd \
+        git-all \
+        libbz2-dev \
+        liblzma-dev \
+        libncurses5-dev
+
+
+       
+# Installation based on installdeps file
+
+#Main folder
+cd /opt
+git clone https://github.com/at-cg/PHI
+export PHIDIR=/opt/PHI
+
+
+
+#Subfolders
+mkdir -p $PHIDIR/extra
+mkdir -p $PHIDIR/extra/plugins
+mkdir -p $PHIDIR/extra/lib
+mkdir -p $PHIDIR/extra/bin
+mkdir -p $PHIDIR/extra/include
+
+#Install folder
+mkdir -p $PHIDIR/temp_bin
+cd $PHIDIR/temp_bin
+
+
+# htslib
+git clone https://github.com/samtools/htslib.git
+cd htslib
+git submodule update --init --recursive
+autoreconf -i
+./configure --prefix=$PHIDIR/extra
+make -j4
+make install
+cd ..
+
+# samtools
+git clone https://github.com/samtools/samtools.git
+cd samtools
+autoheader
+autoconf -Wno-syntax
+./configure --prefix=$PHIDIR/extra
+make -j4
+make install
+cd ..
+
+# bcftools
+git clone https://github.com/samtools/bcftools.git
+cd bcftools
+make -j4
+cp bcftools $PHIDIR/extra/bin/
+cp -r plugins/* $PHIDIR/extra/plugins/
+cd ..
+
+# sdsl-lite
+git clone https://github.com/vgteam/sdsl-lite.git
+cd sdsl-lite
+cd build
+cmake ..
+make -j4
+cp -r lib/* $PHIDIR/extra/lib/.
+cp -r external/libdivsufsort/lib/* $PHIDIR/extra/lib/
+cd ../..
+
+# libhandlegraph
+git clone https://github.com/vgteam/libhandlegraph.git
+cd libhandlegraph
+mkdir -p build
+cd build
+cmake .. 
+make -j4 CPPFLAGS="-I../../sdsl-lite/include" LDFLAGS="-L../../sdsl-lite/build/lib/ -L../../sdsl-lite/build/external/libdivsufsort/lib/"
+#A VERIFIER !!
+cp libhandlegraph.a $PHIDIR/extra/lib/
+cp libhandlegraph.so $PHIDIR/extra/lib/
+cd ../..
+
+# gbwt
+git clone https://github.com/jltsiren/gbwt.git
+cd gbwt
+make -j4 CPPFLAGS="-I../sdsl-lite/include -I../libhandlegraph/src/include/" LDFLAGS="-L../sdsl-lite/build/lib/ -L../sdsl-lite/build/external/libdivsufsort/lib/ -L../libhandlegraph/build/"
+cp -r lib/* $PHIDIR/extra/lib/
+cd ..
+
+# gbwtgraph
+git clone https://github.com/jltsiren/gbwtgraph.git
+cd gbwtgraph
+make CPPFLAGS="-I../sdsl-lite/include -I../gbwt/include -I../libhandlegraph/src/include/" \
+     LDFLAGS="-L../gbwt/lib -L../sdsl-lite/build/lib/ -L../sdsl-lite/build/external/libdivsufsort/lib/ -L../libhandlegraph/build/" -j4
+cp bin/gfa2gbwt $PHIDIR/extra/bin/
+cp -r lib/* $PHIDIR/extra/lib/
+cd ..
+
+# zlib
+wget --no-check-certificate https://zlib.net/current/zlib.tar.gz
+tar -xvf zlib.tar.gz
+cd zlib-*
+./configure --prefix=$PHIDIR/extra
+make -j4
+make install
+cd ..
+
+# vg
+wget https://github.com/vgteam/vg/releases/download/v1.60.0/vg -O $PHIDIR/extra/bin/vg
+chmod +x $PHIDIR/extra/bin/vg
+
+
+
+# gurobi
+wget --no-check-certificate https://packages.gurobi.com/11.0/gurobi11.0.2_linux64.tar.gz
+tar -xvf gurobi11.0.2_linux64.tar.gz
+cd gurobi1102/linux64
+cp -r lib/* $PHIDIR/extra/lib/.
+cp -r include/* $PHIDIR/extra/include/.
+cd $PHIDIR/temp_bin
+
+# Cleaning
+rm -rf $PHIDIR/temp_bin
+
+#Install PHI itself
+cd /opt/PHI
+export PATH=/opt/PHI/extra/bin:/opt/PHI/extra/include:$PATH
+export LD_LIBRARY_PATH=/opt/PHI/extra/lib:$LD_LIBRARY_PATH
+make -j4
+    
+%environment
+	export PATH=/opt/PHI/extra/bin:/opt/PHI:$PATH
+	export LD_LIBRARY_PATH=/opt/PHI/extra/lib:$LD_LIBRARY_PATH
+
+	
+%runscript
+    exec "$@"
+
