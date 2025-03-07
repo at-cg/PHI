@@ -49,7 +49,7 @@ You need to be root OR having the right to build
 ```bash
 git clone https://github.com/at-cg/PHI
 cd PHI
-singularity build Singularity.PHI1.0.def Singularity.PHI1.0.img
+singularity build Singularity.PHI1.0.img Singularity.PHI1.0.def
 ```
 ### Running
 To run the container, simply type:
